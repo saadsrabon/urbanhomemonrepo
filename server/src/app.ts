@@ -15,7 +15,23 @@ app.use(pinoHttp());
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
-    origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const allowed = env.CORS_ORIGIN.split(',').map((o) => o.trim());
+      if (allowed.includes(origin) || allowed.includes('*')) {
+        callback(null, true);
+        return;
+      }
+      // Allow Vercel preview/production frontends during demo deployments
+      if (origin.endsWith('.vercel.app')) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
   })
 );

@@ -3,6 +3,8 @@ dist/
 .next/
 .env
 .env.local
+.env*.local
+.vercel/
 uploads/
 *.log
 .DS_Store

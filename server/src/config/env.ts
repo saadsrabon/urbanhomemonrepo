@@ -6,7 +6,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
-  DATABASE_URL: z.string(),
+  DATABASE_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRES: z.string().default('15m'),
@@ -32,4 +32,21 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = parsed.data;
+const databaseUrl =
+  parsed.data.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL_NON_POOLING;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL (or POSTGRES_URL from Vercel Neon integration)');
+  process.exit(1);
+}
+
+process.env.DATABASE_URL = databaseUrl;
+
+export const env = {
+  ...parsed.data,
+  DATABASE_URL: databaseUrl,
+  UPLOAD_DIR: process.env.VERCEL ? '/tmp/uploads' : parsed.data.UPLOAD_DIR,
+};

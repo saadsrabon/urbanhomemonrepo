@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  --navy: #0e2148;
+  --navy-light: #1a3366;
+  --gold: #f2a81d;
+  --gold-dark: #d9920f;
+  --muted: #f7f8fa;
+  --border: #e2e8f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-navy transition hover:bg-gold-dark;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-navy transition hover:bg-muted;
+}
+
+.input {
+  @apply w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20;
+}
+
+.card {
+  @apply rounded-xl border border-border bg-white p-6 shadow-sm;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
