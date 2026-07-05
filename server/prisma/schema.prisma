@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  TEAM_MEMBER
+}
+
+enum PriceType {
+  FIXED
+  QUOTE
+  RANGE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(TEAM_MEMBER)
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teamProfile       TeamProfile?
+  refreshTokens     RefreshToken[]
+  assignedBookings  Booking[]         @relation("AssignedBookings")
+  preferredBookings Booking[]         @relation("PreferredStaff")
+  bookingActivities BookingActivity[]
+}
+
+model TeamProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  designation     String
+  yearsExperience Int      @default(0)
+  bio             String?
+  skills          String[] @default([])
+  serviceCategoryIds String[] @default([])
+  photoUrl        String?
+  isPublic        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ServiceCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  iconUrl     String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  services Service[]
+  projects Project[]
+}
+
+model Service {
+  id              String    @id @default(cuid())
+  categoryId      String
+  title           String
+  slug            String    @unique
+  shortDesc       String?
+  description     String?   @db.Text
+  imageUrl        String?
+  beforeImageUrl  String?
+  afterImageUrl   String?
+  featureBullets  String[]  @default([])
+  benefitBullets  String[]  @default([])
+  processSteps    Json      @default("[]")
+  durationMinutes Int       @default(60)
+  priceType       PriceType @default(QUOTE)
+  priceFrom       Float?
+  priceTo         Float?
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
+  seoTitle        String?
+  seoDesc         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  customerName     String
+  customerEmail    String
+  customerPhone    String
+  country          String?
+  address          String?
+  serviceId        String
+  preferredStaffId String?
+  preferredDate    DateTime
+  preferredTimeSlot String
+  notes            String?       @db.Text
+  status           BookingStatus @default(PENDING)
+  assignedToId     String?
+  managerNotes     String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  service        Service           @relation(fields: [serviceId], references: [id])
+  preferredStaff User?             @relation("PreferredStaff", fields: [preferredStaffId], references: [id])
+  assignedTo     User?             @relation("AssignedBookings", fields: [assignedToId], references: [id])
+  activities     BookingActivity[]
+}
+
+model BookingActivity {
+  id          String         @id @default(cuid())
+  bookingId   String
+  fromStatus  BookingStatus?
+  toStatus    BookingStatus
+  note        String?
+  changedById String?
+  createdAt   DateTime       @default(now())
+
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  changedBy User?   @relation(fields: [changedById], references: [id])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Project {
+  id            String    @id @default(cuid())
+  title         String
+  categoryId    String?
+  coverImageUrl String?
+  images        String[]  @default([])
+  description   String?   @db.Text
+  completedAt   DateTime?
+  isFeatured    Boolean   @default(false)
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  category ServiceCategory? @relation(fields: [categoryId], references: [id])
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  location  String?
+  quote     String   @db.Text
+  avatarUrl String?
+  rating    Int      @default(5)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PricingPlan {
+  id           String   @id @default(cuid())
+  name         String
+  priceMonthly Float
+  priceYearly  Float
+  features     String[] @default([])
+  isFeatured   Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Location {
+  id           String   @id @default(cuid())
+  name         String
+  addressLine  String
+  phone        String?
+  email        String?
+  workingHours String?
+  mapUrl       String?
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BlogPost {
+  id           String    @id @default(cuid())
+  title        String
+  slug         String    @unique
+  excerpt      String?
+  body         String    @db.Text
+  coverImageUrl String?
+  publishedAt  DateTime?
+  isPublished  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
