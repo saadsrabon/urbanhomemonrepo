@@ -3,60 +3,90 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: urban_home_security
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-urban_home_security}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   api:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/urban_home_security?schema=public
-    ports:
-      - "4000:4000"
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-urban_home_security}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-15m}
+      JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      UPLOAD_DIR: /app/server/uploads
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@urbanhomeandsecurity.com}
+      ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+    expose:
+      - "4000"
     volumes:
-      - uploads_data:/app/uploads
+      - uploads_data:/app/server/uploads
+    networks:
+      - dokploy-network
     depends_on:
       postgres:
         condition: service_healthy
 
   web:
     build:
-      context: ./web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost/api
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
     restart: unless-stopped
-    env_file: .env
-    ports:
-      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
+    expose:
+      - "80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/var/www/uploads:ro
+    networks:
+      - dokploy-network
     depends_on:
-      - api
-      - web
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   postgres_data:
