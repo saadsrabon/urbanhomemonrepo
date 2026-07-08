@@ -2,6 +2,32 @@
 
 Deploy **frontend** and **backend** as two separate Vercel projects (VPS setup on `main` stays unchanged).
 
+## Branch & Git
+
+| Item | Value |
+|------|-------|
+| GitHub repo | `https://github.com/saadsrabon/urbanhomemonrepo` |
+| Production branch | **`design`** |
+| Web root directory | `web/` |
+| API root directory | `server/` |
+
+Both Vercel projects are connected to GitHub. Pushes to `design` should trigger deployments.
+
+**Set production branch to `design` (one-time, both projects):**
+
+1. [Vercel Dashboard](https://vercel.com) → project → **Settings** → **Environments**
+2. Open **Production** → **Branch Tracking**
+3. Change branch from `main` to **`design`** → **Save**
+
+Repeat for **urban-home-security-web** and **urban-home-security-api**.
+
+Push to GitHub:
+
+```bash
+git checkout design
+git push origin design
+```
+
 ## Projects
 
 | App | Vercel project | Root folder |
@@ -49,6 +75,7 @@ In **urban-home-security-web** → Environment Variables:
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_URL` | `https://urban-home-security-api.vercel.app/api` |
+| `NEXT_PUBLIC_SITE_URL` | `https://urban-home-security-web.vercel.app` |
 
 ## 6. Deploy Web
 
