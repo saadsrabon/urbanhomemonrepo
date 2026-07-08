@@ -1,3 +1,5 @@
+import { resolveImageUrl } from '@/lib/images';
+
 /** Curated local images — home improvement & security vibe */
 export const SECTION_IMAGES = {
   home: '/sections/home-exterior.jpg',
@@ -150,11 +152,5 @@ export function getBeforeAfterForSlug(slug: string): BeforeAfterSet | undefined 
 }
 
 export function resolveAssetUrl(src?: string | null): string | null {
-  if (!src) return null;
-  if (src.startsWith('http')) return src;
-  if (src.startsWith('/sections/') || src.startsWith('/before-after/') || src.startsWith('/team/') || src.startsWith('/logo')) {
-    return src;
-  }
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
-  return `${API_BASE}${src.startsWith('/') ? src : `/${src}`}`;
+  return resolveImageUrl(src);
 }

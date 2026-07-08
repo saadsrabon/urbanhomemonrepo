@@ -322,7 +322,7 @@ async function main() {
     {
       title: 'Kitchen Remodeling',
       categoryId: homeImprovement.id,
-      coverImageUrl: '/uploads/project-kitchen-remodel.jpg',
+      coverImageUrl: '/before-after/kitchen-after.jpg',
       description: 'Full kitchen transformation with custom cabinets, quartz countertops, and modern lighting.',
       isFeatured: true,
       sortOrder: 1,
@@ -330,7 +330,7 @@ async function main() {
     {
       title: 'Bathroom Renovation',
       categoryId: homeImprovement.id,
-      coverImageUrl: '/uploads/project-bathroom-renovation.jpg',
+      coverImageUrl: '/before-after/bathroom-after.jpg',
       description: 'Spa-inspired bathroom with new tile, fixtures, and vanity installation.',
       isFeatured: true,
       sortOrder: 2,
@@ -338,28 +338,28 @@ async function main() {
     {
       title: 'Roof Replacement',
       categoryId: homeImprovement.id,
-      coverImageUrl: '/uploads/project-roof-replacement.jpg',
+      coverImageUrl: '/before-after/roof-after.jpg',
       description: 'Complete roof installation with premium weather-resistant materials.',
       sortOrder: 3,
     },
     {
       title: 'Burglar Door & AC Cage',
       categoryId: securityServices.id,
-      coverImageUrl: '/uploads/project-security-door.jpg',
+      coverImageUrl: '/before-after/security-after.jpg',
       description: 'Custom security door and AC steel cage installation for a Houston residential property.',
       sortOrder: 4,
     },
     {
       title: 'Exterior Painting',
       categoryId: homeImprovement.id,
-      coverImageUrl: '/uploads/project-exterior-paint.jpg',
+      coverImageUrl: '/before-after/exterior-after.jpg',
       description: 'Full exterior repaint with power washing and trim detail work.',
       sortOrder: 5,
     },
     {
       title: 'Living Space Remodel',
       categoryId: homeImprovement.id,
-      coverImageUrl: '/uploads/project-living-remodel.jpg',
+      coverImageUrl: '/before-after/remodel-after.jpg',
       description: 'Open-concept living area upgrade with new flooring, lighting, and built-ins.',
       sortOrder: 6,
     },
@@ -374,6 +374,14 @@ async function main() {
           images: project.coverImageUrl ? [project.coverImageUrl] : [],
           completedAt: new Date(),
           isActive: true,
+        },
+      });
+    } else {
+      await prisma.project.update({
+        where: { id: existing.id },
+        data: {
+          coverImageUrl: project.coverImageUrl,
+          images: project.coverImageUrl ? [project.coverImageUrl] : [],
         },
       });
     }

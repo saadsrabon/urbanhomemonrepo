@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveImageUrl } from '@/lib/images';
-import { resolveAssetUrl, BEFORE_AFTER_SETS } from '@/lib/sectionBackgrounds';
+import { getSectionImage, getThemeForSlug, BEFORE_AFTER_SETS } from '@/lib/sectionBackgrounds';
 
 export interface NavService {
   id: string;
@@ -221,6 +221,8 @@ export function NavMegaMenuPanel({
                       displayServices.map((s) => {
                         const Icon = getServiceIcon(s.slug);
                         const iconUrl = resolveImageUrl(s.category?.iconUrl);
+                        const thumbUrl =
+                          resolveImageUrl(s.imageUrl) ?? getSectionImage(getThemeForSlug(s.slug));
                         return (
                           <Link
                             key={s.id}
@@ -228,13 +230,21 @@ export function NavMegaMenuPanel({
                             onClick={onClose}
                             className="group flex gap-3.5 bg-white px-5 py-4 transition hover:bg-navy/[0.03]"
                           >
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy/5 text-navy transition group-hover:bg-gold/20 group-hover:text-gold-dark">
-                              {iconUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={iconUrl} alt="" className="h-5 w-5 object-contain" />
-                              ) : (
-                                <Icon className="h-4 w-4" />
-                              )}
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-navy/5">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={thumbUrl}
+                                alt=""
+                                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition group-hover:opacity-100">
+                                {iconUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={iconUrl} alt="" className="h-4 w-4 object-contain" />
+                                ) : (
+                                  <Icon className="h-4 w-4 text-gold" />
+                                )}
+                              </div>
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold text-navy group-hover:text-gold-dark">{s.title}</p>
@@ -288,7 +298,10 @@ export function NavMegaMenuPanel({
                   <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-3">
                     {displayProjects.length > 0 ? (
                       displayProjects.map((p) => {
-                        const img = resolveAssetUrl(p.coverImageUrl) ?? resolveImageUrl(p.coverImageUrl);
+                        const img =
+                          resolveImageUrl(p.coverImageUrl) ??
+                          BEFORE_AFTER_SETS.find((b) => b.title === p.title)?.after ??
+                          null;
                         return (
                           <Link
                             key={p.id}
