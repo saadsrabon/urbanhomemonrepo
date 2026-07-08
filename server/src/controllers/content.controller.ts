@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+import path from 'path';
 import { Response, NextFunction } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../utils/auth.types';
@@ -11,6 +13,7 @@ import {
   pricingPlanSchema,
   projectSchema,
   reorderSchema,
+  settingsSchema,
   testimonialSchema,
 } from '../schemas';
 import { uniqueSlug } from '../utils/slug';
@@ -18,6 +21,9 @@ import { contactAlertEmail, sendEmail } from '../services/email.service';
 import { env } from '../config/env';
 import { paramId } from '../utils/params';
 import { z } from 'zod';
+import { processUploadedImage } from '../utils/image';
+import { getPublicUrl } from '../middleware/upload';
+import { getMimeFromExtension, resolveSafeUploadPath } from '../utils/sanitize';
 
 // Contact
 export async function createContact(req: AuthRequest, res: Response, next: NextFunction) {
@@ -327,7 +333,7 @@ export async function getSettings(_req: AuthRequest, res: Response, next: NextFu
 
 export async function updateSettings(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const data = req.body as Record<string, unknown>;
+    const data = settingsSchema.parse(req.body);
     await prisma.$transaction(
       Object.entries(data).map(([key, value]) =>
         prisma.siteSetting.upsert({
@@ -396,7 +402,56 @@ export async function getStats(_req: AuthRequest, res: Response, next: NextFunct
 export async function uploadImage(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     if (!req.file) throw notFound('No file uploaded');
-    res.json({ url: `/uploads/${req.file.filename}` });
+    const isIcon = req.query.type === 'icon';
+    const { filename } = await processUploadedImage(req.file.path, req.file.mimetype, { isIcon });
+    res.json({ url: getPublicUrl(filename) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listMedia(_req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const uploadDir = path.resolve(env.UPLOAD_DIR);
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+    const files = await Promise.all(
+      entries
+        .filter((entry) => entry.isFile())
+        .map(async (entry) => {
+          const filePath = path.join(uploadDir, entry.name);
+          const stat = await fs.stat(filePath);
+          return {
+            filename: entry.name,
+            url: getPublicUrl(entry.name),
+            size: stat.size,
+            uploadedAt: stat.mtime.toISOString(),
+            mimeType: getMimeFromExtension(entry.name),
+          };
+        })
+    );
+
+    files.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+    res.json(files);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteMedia(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const safePath = resolveSafeUploadPath(env.UPLOAD_DIR, paramId(req.params.filename));
+    if (!safePath) throw notFound('File not found');
+
+    try {
+      await fs.access(safePath);
+    } catch {
+      throw notFound('File not found');
+    }
+
+    await fs.unlink(safePath);
+    res.json({ message: 'Deleted' });
   } catch (err) {
     next(err);
   }

@@ -15,6 +15,7 @@ import {
   DollarSign,
   MapPin,
   Briefcase,
+  ImageIcon,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ const adminLinks = [
   { href: '/admin/services', label: 'Services', icon: Wrench },
   { href: '/admin/categories', label: 'Categories', icon: FolderOpen },
   { href: '/admin/projects', label: 'Portfolio', icon: Briefcase },
+  { href: '/admin/media', label: 'Media Library', icon: ImageIcon },
   { href: '/admin/testimonials', label: 'Testimonials', icon: Star },
   { href: '/admin/faqs', label: 'FAQs', icon: HelpCircle },
   { href: '/admin/pricing', label: 'Pricing', icon: DollarSign },

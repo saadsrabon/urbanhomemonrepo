@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { env } from '../config/env';
 import { badRequest } from '../utils/errors';
+import { isAllowedMime, sanitizeFilename } from '../utils/sanitize';
 
 const uploadDir = path.resolve(env.UPLOAD_DIR);
 if (!fs.existsSync(uploadDir)) {
@@ -12,15 +13,13 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
+    cb(null, sanitizeFilename(file.originalname));
   },
 });
 
 const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(badRequest('Only image files are allowed') as unknown as null, false);
+  if (isAllowedMime(file.mimetype)) cb(null, true);
+  else cb(badRequest('Only image files are allowed (JPEG, PNG, WebP, GIF, SVG)') as unknown as null, false);
 };
 
 export const upload = multer({

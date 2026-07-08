@@ -14,12 +14,16 @@ import {
   Lock,
   Eye,
   Star,
-  MapPin,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { AnimateIn, StaggerChildren, StaggerItem } from './AnimateIn';
+import { AnimateIn, StaggerChildren, StaggerItem, TiltCard } from './AnimateIn';
 import { cn } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/images';
+import { getSectionImage, getThemeForSlug } from '@/lib/sectionBackgrounds';
+import { SectionBg } from './SectionBackdrop';
+import { ServiceAreaMap } from './ServiceAreaMap';
+import { HomeFinalCta } from './HomeFinalCta';
 
 function getIcon(slug: string) {
   if (slug.includes('security') || slug.includes('cage') || slug.includes('guard')) return Shield;
@@ -62,6 +66,8 @@ interface Service {
   title: string;
   slug: string;
   shortDesc?: string;
+  imageUrl?: string | null;
+  category?: { name: string; iconUrl?: string | null };
 }
 
 interface Testimonial {
@@ -71,18 +77,25 @@ interface Testimonial {
   role?: string;
   location?: string;
   rating?: number;
+  avatarUrl?: string;
 }
 
 interface Location {
   id: string;
   name: string;
   addressLine?: string;
+  phone?: string;
+  email?: string;
+  workingHours?: string;
+  mapUrl?: string;
 }
 
 interface ServicesPageContentProps {
   services: Service[];
   testimonials: Testimonial[];
   locations: Location[];
+  settings?: Record<string, unknown>;
+  projects?: { coverImageUrl?: string | null }[];
 }
 
 function WaveLine({ className }: { className?: string }) {
@@ -97,127 +110,31 @@ function WaveLine({ className }: { className?: string }) {
   );
 }
 
-function ServiceAreaMap({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 480 360"
-      className={cn('w-full max-w-lg', className)}
-      aria-label="Service area map"
-      role="img"
-    >
-      <defs>
-        <linearGradient id="mapBg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f7f8fa" />
-          <stop offset="100%" stopColor="#e8edf5" />
-        </linearGradient>
-        <filter id="pinShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#0e2148" floodOpacity="0.2" />
-        </filter>
-      </defs>
-
-      <rect width="480" height="360" rx="16" fill="url(#mapBg)" />
-
-      {/* water / bay */}
-      <path
-        d="M0 280 Q80 260 120 290 T200 275 T320 295 T480 270 L480 360 L0 360 Z"
-        fill="#0e2148"
-        opacity="0.08"
-      />
-
-      {/* road grid */}
-      <g stroke="#cbd5e1" strokeWidth="2" opacity="0.7">
-        <line x1="0" y1="90" x2="480" y2="90" />
-        <line x1="0" y1="180" x2="480" y2="180" />
-        <line x1="0" y1="270" x2="480" y2="270" />
-        <line x1="120" y1="0" x2="120" y2="360" />
-        <line x1="240" y1="0" x2="240" y2="360" />
-        <line x1="360" y1="0" x2="360" y2="360" />
-      </g>
-
-      {/* major roads */}
-      <path d="M40 40 Q240 60 440 50" stroke="#0e2148" strokeWidth="3" fill="none" opacity="0.15" />
-      <path d="M60 320 Q240 280 420 310" stroke="#0e2148" strokeWidth="3" fill="none" opacity="0.15" />
-      <path d="M240 20 L240 340" stroke="#0e2148" strokeWidth="4" fill="none" opacity="0.12" />
-
-      {/* service zone ring */}
-      <circle cx="240" cy="175" r="110" fill="none" stroke="#f2a81d" strokeWidth="2" strokeDasharray="8 6" opacity="0.5" />
-      <circle cx="240" cy="175" r="70" fill="#f2a81d" opacity="0.06" />
-
-      {/* location pins */}
-      {[
-        { cx: 200, cy: 140, label: 'Downtown' },
-        { cx: 290, cy: 165, label: 'East Side' },
-        { cx: 175, cy: 210, label: 'Southwest' },
-        { cx: 310, cy: 220, label: 'Southeast' },
-        { cx: 240, cy: 120, label: 'North' },
-      ].map((pin, i) => (
-        <g key={pin.label} filter="url(#pinShadow)">
-          <motion.circle
-            cx={pin.cx}
-            cy={pin.cy}
-            r="18"
-            fill="#f2a81d"
-            opacity="0.15"
-            initial={{ scale: 0 }}
-            whileInView={{ scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 + i * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          />
-          <motion.g
-            initial={{ opacity: 0, y: -8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 + i * 0.1, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <path
-              d={`M${pin.cx} ${pin.cy - 14} C${pin.cx - 10} ${pin.cy - 14} ${pin.cx - 10} ${pin.cy + 2} ${pin.cx} ${pin.cy + 14} C${pin.cx + 10} ${pin.cy + 2} ${pin.cx + 10} ${pin.cy - 14} ${pin.cx} ${pin.cy - 14} Z`}
-              fill="#0e2148"
-            />
-            <circle cx={pin.cx} cy={pin.cy - 2} r="4" fill="#f2a81d" />
-          </motion.g>
-        </g>
-      ))}
-
-      {/* center hub */}
-      <motion.g
-        initial={{ scale: 0, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <circle cx="240" cy="175" r="22" fill="#0e2148" />
-        <circle cx="240" cy="175" r="10" fill="#f2a81d" />
-      </motion.g>
-
-      <text x="240" y="345" textAnchor="middle" fill="#64748b" fontSize="11" fontFamily="system-ui">
-        Greater Houston Service Area
-      </text>
-    </svg>
-  );
-}
-
 function ServiceCard({ service, index }: { service: Service; index: number }) {
   const Icon = getIcon(service.slug);
-  const tone = cardTones[index % cardTones.length];
+  const categoryIcon = resolveImageUrl(service.category?.iconUrl);
+  const bgImage = resolveImageUrl(service.imageUrl) || getSectionImage(getThemeForSlug(service.slug));
 
   return (
     <StaggerItem>
-      <Link
-        href={`/services/${service.slug}`}
-        className="group relative block aspect-[4/5] overflow-hidden rounded-xl sm:aspect-[3/4]"
-      >
-        <div
-          className={cn(
-            'absolute inset-0 bg-gradient-to-br transition-transform duration-700 ease-out group-hover:scale-105',
-            tone
-          )}
-        />
-        <div className="absolute inset-0 bg-navy/20 transition group-hover:bg-navy/10" />
+      <TiltCard>
+        <Link
+          href={`/services/${service.slug}`}
+          className="group relative block aspect-[4/5] overflow-hidden rounded-xl sm:aspect-[3/4]"
+        >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={bgImage} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+        <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/55 to-navy/25 transition group-hover:via-navy/45" />
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy via-navy/90 to-transparent px-5 pb-5 pt-16">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-gold backdrop-blur-sm transition group-hover:border-gold/40 group-hover:bg-gold/20">
-              <Icon className="h-4 w-4" />
+              {categoryIcon ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={categoryIcon} alt="" className="h-5 w-5 object-contain" />
+              ) : (
+                <Icon className="h-4 w-4" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-white transition group-hover:text-gold">{service.title}</h3>
@@ -228,6 +145,7 @@ function ServiceCard({ service, index }: { service: Service; index: number }) {
           </div>
         </div>
       </Link>
+      </TiltCard>
     </StaggerItem>
   );
 }
@@ -281,9 +199,14 @@ function TestimonialsCarousel({ testimonials }: { testimonials: Testimonial[] })
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-2xl font-bold text-navy ring-4 ring-white shadow-md"
+            className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-2xl font-bold text-navy ring-4 ring-white shadow-md"
           >
-            {t.name.charAt(0)}
+            {resolveImageUrl(t.avatarUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={resolveImageUrl(t.avatarUrl)!} alt="" className="h-full w-full object-cover" />
+            ) : (
+              t.name.charAt(0)
+            )}
           </motion.div>
 
           <motion.div
@@ -350,21 +273,21 @@ function TestimonialsCarousel({ testimonials }: { testimonials: Testimonial[] })
   );
 }
 
-export function ServicesPageContent({ services, testimonials, locations }: ServicesPageContentProps) {
+export function ServicesPageContent({
+  services,
+  testimonials,
+  locations,
+  settings = {},
+  projects = [],
+}: ServicesPageContentProps) {
   const displayServices = services.length > 0 ? services : fallbackServices;
-  const areaLabels =
-    locations.length > 0
-      ? locations.slice(0, 4).map((l) => l.name)
-      : ['Downtown Houston', 'Katy', 'Sugar Land', 'The Woodlands'];
+  const contactPhone = (settings.contactPhone as string) || '(346) 365-7221';
 
   return (
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-navy px-4 py-20 lg:px-8 lg:py-24">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-400 to-slate-600" />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/60 to-navy/30" />
-        </div>
+        <SectionBg theme="tools" tone="navy" />
         <div className="absolute inset-0 opacity-[0.07]">
           <svg className="h-full w-full" preserveAspectRatio="xMidYMid slice" aria-hidden>
             <pattern id="heroGrid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -374,7 +297,7 @@ export function ServicesPageContent({ services, testimonials, locations }: Servi
           </svg>
         </div>
 
-        <div className="relative mx-auto max-w-7xl text-center">
+        <div className="relative z-10 mx-auto max-w-7xl text-center">
           <motion.h1
             className="text-4xl font-bold text-white lg:text-5xl"
             initial={{ opacity: 0, y: 32 }}
@@ -395,8 +318,9 @@ export function ServicesPageContent({ services, testimonials, locations }: Servi
       </section>
 
       {/* Services grid */}
-      <section className="py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      <section className="relative overflow-hidden py-20 px-4 lg:px-8">
+        <SectionBg theme="kitchen" tone="light" />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-dark">Our Services</p>
             <h2 className="mt-3 text-3xl font-bold text-navy lg:text-4xl">
@@ -412,50 +336,30 @@ export function ServicesPageContent({ services, testimonials, locations }: Servi
         </div>
       </section>
 
-      {/* Service area + map */}
-      <section className="border-y border-border bg-muted py-20 px-4 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <AnimateIn>
+      {/* Service area + interactive map */}
+      <section className="relative overflow-hidden border-y border-border bg-muted py-20 px-4 lg:px-8">
+        <SectionBg theme="plumbing" tone="muted" />
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <AnimateIn className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-dark">Where We Serve</p>
             <h2 className="mt-3 text-3xl font-bold text-navy">Proudly Serving the Greater Houston Area</h2>
-            <p className="mt-4 leading-relaxed text-slate-600">
-              From downtown to the suburbs, our licensed crews are ready to respond. We bring the same
-              quality and reliability to every neighborhood we serve.
+            <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-slate-600">
+              From downtown to the suburbs, our licensed crews are ready to respond. Tap a pin to see location details.
             </p>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-              {areaLabels.map((label, i) => (
-                <motion.li
-                  key={label}
-                  className="flex items-center gap-2 text-sm font-medium text-navy"
-                  initial={{ opacity: 0, x: -12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.1 + i * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <MapPin className="h-4 w-4 shrink-0 text-gold" />
-                  {label}
-                </motion.li>
-              ))}
-            </ul>
-            <Link href="/contact" className="btn-primary mt-8 inline-flex">
-              Get Directions
-            </Link>
           </AnimateIn>
-
-          <AnimateIn delay={0.12} className="flex justify-center lg:justify-end">
-            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-              <ServiceAreaMap />
-            </div>
+          <AnimateIn delay={0.1} className="mt-12">
+            <ServiceAreaMap locations={locations} contactPhone={contactPhone} />
           </AnimateIn>
         </div>
       </section>
 
       {/* Testimonials */}
       <section className="relative overflow-hidden py-20 px-4 lg:px-8">
-        <WaveLine className="pointer-events-none absolute right-4 top-8 hidden h-[75%] w-16 text-gold/20 lg:block" />
-        <WaveLine className="pointer-events-none absolute left-4 top-16 hidden h-[60%] w-12 text-navy/[0.06] lg:block" />
+        <SectionBg theme="bathroom" tone="light" />
+        <WaveLine className="pointer-events-none absolute right-4 top-8 z-10 hidden h-[75%] w-16 text-gold/20 lg:block" />
+        <WaveLine className="pointer-events-none absolute left-4 top-16 z-10 hidden h-[60%] w-12 text-navy/[0.06] lg:block" />
 
-        <div className="mx-auto max-w-7xl">
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-dark">Testimonials</p>
             <h2 className="mt-3 text-3xl font-bold text-navy">What Our Clients Are Saying</h2>
@@ -467,23 +371,7 @@ export function ServicesPageContent({ services, testimonials, locations }: Servi
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-navy py-14 px-4 lg:px-8">
-        <AnimateIn className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold text-white lg:text-3xl">Ready to get started?</h2>
-          <p className="mt-3 text-white/60">
-            Book a free consultation and let our team handle the rest.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link href="/appointment" className="btn-primary px-8 py-3">
-              Book Appointment
-            </Link>
-            <Link href="/contact" className="btn-secondary border-white/20 bg-transparent text-white hover:bg-white/10">
-              Contact Us
-            </Link>
-          </div>
-        </AnimateIn>
-      </section>
+      <HomeFinalCta contactPhone={contactPhone} />
     </>
   );
 }

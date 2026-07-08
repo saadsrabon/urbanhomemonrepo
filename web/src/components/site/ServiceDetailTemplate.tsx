@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Phone, Mail, ChevronRight } from 'lucide-react';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
-import { AnimateIn } from './AnimateIn';
+import { AnimateIn, Reveal } from './AnimateIn';
+import { StoryTimeline, PageHero } from './StoryTimeline';
 import { publicApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+import { resolveImageUrl } from '@/lib/images';
+import { getBeforeAfterForSlug, getSectionImage, getThemeForSlug, resolveAssetUrl, type SectionTheme } from '@/lib/sectionBackgrounds';
 
 export interface ServiceDetailData {
   id: string;
@@ -32,11 +33,21 @@ interface ServiceDetailTemplateProps {
   contactEmail?: string;
 }
 
-function PhotoBlock({ src, className }: { src?: string | null; className?: string }) {
-  if (src) {
+function PhotoBlock({
+  src,
+  fallbackTheme,
+  className,
+}: {
+  src?: string | null;
+  fallbackTheme?: SectionTheme;
+  className?: string;
+}) {
+  const resolved =
+    resolveAssetUrl(src) ?? resolveImageUrl(src) ?? (fallbackTheme ? getSectionImage(fallbackTheme) : null);
+  if (resolved) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src.startsWith('http') ? src : `${API_BASE}${src}`} alt="" className={cn('object-cover', className)} />
+      <img src={resolved} alt="" className={cn('object-cover', className)} />
     );
   }
   return <div className={cn('bg-slate-200', className)} aria-hidden />;
@@ -84,25 +95,24 @@ export function ServiceDetailTemplate({
 
   return (
     <>
-      {/* Hero */}
-      <section className="bg-navy px-4 py-14 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h1 className="text-3xl font-bold text-white lg:text-4xl">{service.title}</h1>
-          <nav className="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/50">
+      <PageHero
+        title={service.title}
+        breadcrumb={
+          <nav className="mt-4 flex flex-wrap items-center gap-2 text-sm text-white/50">
             <Link href="/" className="hover:text-white">Home</Link>
             <span>/</span>
             <Link href="/services" className="hover:text-white">Our Services</Link>
             <span>/</span>
             <span className="text-white/80">{service.title}</span>
           </nav>
-        </div>
-      </section>
+        }
+      />
 
       {/* Main layout */}
       <section className="bg-white py-10 px-4 lg:px-8 lg:py-14">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[300px_1fr] lg:gap-12">
           {/* Sidebar */}
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <Reveal variant="slide-left" className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             {/* Quote form */}
             <div className="overflow-hidden rounded-sm border border-border shadow-sm">
               <div className="bg-navy px-5 py-4">
@@ -189,13 +199,14 @@ export function ServiceDetailTemplate({
                 </a>
               </div>
             </div>
-          </aside>
+          </Reveal>
 
           {/* Main content */}
           <div className="min-w-0">
             <AnimateIn>
               <PhotoBlock
                 src={service.imageUrl}
+                fallbackTheme={getThemeForSlug(service.slug)}
                 className="aspect-[16/9] w-full rounded-sm"
               />
             </AnimateIn>
@@ -228,17 +239,17 @@ export function ServiceDetailTemplate({
             )}
 
             {service.processSteps.length > 0 && (
-              <AnimateIn delay={0.1} className="mt-12">
+              <Reveal delay={0.1} className="mt-12">
                 <h3 className="text-xl font-bold text-navy">Our Process</h3>
-                <div className="mt-6 space-y-8">
-                  {service.processSteps.map((step) => (
-                    <div key={step.title}>
-                      <h4 className="font-semibold text-navy">{step.title}</h4>
-                      <p className="mt-2 text-slate-600 leading-relaxed">{step.description}</p>
-                    </div>
-                  ))}
+                <div className="mt-6">
+                  <StoryTimeline
+                    items={service.processSteps.map((s) => ({
+                      title: s.title,
+                      description: s.description,
+                    }))}
+                  />
                 </div>
-              </AnimateIn>
+              </Reveal>
             )}
 
             {/* Before / After */}
@@ -250,7 +261,12 @@ export function ServiceDetailTemplate({
                   <PhotoBlock src={service.afterImageUrl} className="aspect-[4/3] w-full rounded-sm" />
                 </div>
               ) : (
-                <BeforeAfterSlider className="rounded-sm shadow-sm ring-1 ring-border" />
+                <BeforeAfterSlider
+                  className="rounded-sm shadow-sm ring-1 ring-border"
+                  beforeUrl={getBeforeAfterForSlug(service.slug)?.before}
+                  afterUrl={getBeforeAfterForSlug(service.slug)?.after}
+                  caption={getBeforeAfterForSlug(service.slug)?.caption}
+                />
               )}
             </AnimateIn>
 

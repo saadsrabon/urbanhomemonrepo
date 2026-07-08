@@ -1,4 +1,18 @@
 import { z } from 'zod';
+import { sanitizeText } from '../utils/sanitize';
+
+const safeString = (max = 500) =>
+  z.string().max(max).transform((v) => sanitizeText(v, max));
+
+const imageUrlSchema = z
+  .string()
+  .max(500)
+  .refine(
+    (v) => !v || v.startsWith('/uploads/') || /^https?:\/\//.test(v),
+    'Image URL must be a relative /uploads/ path or absolute http(s) URL'
+  );
+
+const optionalImageUrl = imageUrlSchema.optional();
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -6,18 +20,20 @@ export const loginSchema = z.object({
 });
 
 export const createUserSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: safeString(120),
+  email: z.string().email().transform((v) => v.toLowerCase().trim()),
+  password: z.string().min(8).max(128),
   role: z.enum(['SUPER_ADMIN', 'MANAGER', 'TEAM_MEMBER']),
-  phone: z.string().optional(),
+  phone: safeString(30).optional(),
+  avatarUrl: optionalImageUrl,
   teamProfile: z
     .object({
-      designation: z.string().min(2),
-      yearsExperience: z.number().int().min(0).default(0),
-      bio: z.string().optional(),
-      skills: z.array(z.string()).default([]),
-      serviceCategoryIds: z.array(z.string()).default([]),
+      designation: safeString(120),
+      yearsExperience: z.number().int().min(0).max(80).default(0),
+      bio: safeString(2000).optional(),
+      skills: z.array(safeString(80)).max(20).default([]),
+      serviceCategoryIds: z.array(z.string()).max(20).default([]),
+      photoUrl: optionalImageUrl,
       isPublic: z.boolean().default(true),
     })
     .optional(),
@@ -29,21 +45,21 @@ export const updateUserSchema = createUserSchema.partial().omit({ password: true
 });
 
 export const categorySchema = z.object({
-  name: z.string().min(2),
-  description: z.string().optional(),
-  iconUrl: z.string().optional(),
+  name: safeString(120),
+  description: safeString(500).optional(),
+  iconUrl: optionalImageUrl,
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });
 
 export const serviceSchema = z.object({
   categoryId: z.string(),
-  title: z.string().min(2),
-  shortDesc: z.string().optional(),
-  description: z.string().optional(),
-  imageUrl: z.string().optional(),
-  beforeImageUrl: z.string().optional(),
-  afterImageUrl: z.string().optional(),
+  title: safeString(200),
+  shortDesc: safeString(300).optional(),
+  description: safeString(10000).optional(),
+  imageUrl: optionalImageUrl,
+  beforeImageUrl: optionalImageUrl,
+  afterImageUrl: optionalImageUrl,
   featureBullets: z.array(z.string()).default([]),
   benefitBullets: z.array(z.string()).default([]),
   processSteps: z.array(z.object({ title: z.string(), description: z.string() })).default([]),
@@ -94,11 +110,11 @@ export const newsletterSchema = z.object({
 });
 
 export const testimonialSchema = z.object({
-  name: z.string().min(2),
-  role: z.string().optional(),
-  location: z.string().optional(),
-  quote: z.string().min(10),
-  avatarUrl: z.string().optional(),
+  name: safeString(120),
+  role: safeString(120).optional(),
+  location: safeString(120).optional(),
+  quote: safeString(2000).refine((v) => v.length >= 10, 'Quote must be at least 10 characters'),
+  avatarUrl: optionalImageUrl,
   rating: z.number().int().min(1).max(5).default(5),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
@@ -133,11 +149,11 @@ export const locationSchema = z.object({
 });
 
 export const projectSchema = z.object({
-  title: z.string().min(2),
+  title: safeString(200),
   categoryId: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  images: z.array(z.string()).default([]),
-  description: z.string().optional(),
+  coverImageUrl: optionalImageUrl,
+  images: z.array(imageUrlSchema).max(20).default([]),
+  description: safeString(5000).optional(),
   completedAt: z.string().optional(),
   isFeatured: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
@@ -145,16 +161,32 @@ export const projectSchema = z.object({
 });
 
 export const blogPostSchema = z.object({
-  title: z.string().min(2),
-  excerpt: z.string().optional(),
-  body: z.string().min(10),
-  coverImageUrl: z.string().optional(),
+  title: safeString(200),
+  excerpt: safeString(500).optional(),
+  body: safeString(50000).refine((v) => v.length >= 10, 'Body must be at least 10 characters'),
+  coverImageUrl: optionalImageUrl,
   publishedAt: z.string().optional(),
   isPublished: z.boolean().optional(),
 });
 
+const heroBeforeAfterSlideSchema = z.object({
+  before: imageUrlSchema,
+  after: imageUrlSchema,
+  caption: safeString(200).optional(),
+});
+
+export const settingsSchema = z
+  .record(
+    z.union([
+      safeString(500),
+      z.number(),
+      z.boolean(),
+      z.array(safeString(200)),
+      z.array(heroBeforeAfterSlideSchema).max(20),
+    ])
+  )
+  .refine((data) => Object.keys(data).length <= 50, 'Too many settings keys');
+
 export const reorderSchema = z.object({
   items: z.array(z.object({ id: z.string(), sortOrder: z.number().int() })),
 });
-
-export const settingsSchema = z.record(z.unknown());

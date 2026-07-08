@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Phone, Star } from 'lucide-react';
-import { AnimateIn, StaggerChildren, StaggerItem } from './AnimateIn';
+import { AnimateIn, StaggerChildren, StaggerItem, CountUp, AnimatePresence } from './AnimateIn';
 import { cn } from '@/lib/utils';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+import { resolveImageUrl } from '@/lib/images';
+import { BEFORE_AFTER_SETS, resolveAssetUrl } from '@/lib/sectionBackgrounds';
+import { SectionBg } from './SectionBackdrop';
 
 interface Project {
   id: string;
@@ -25,12 +26,14 @@ interface Testimonial {
   role?: string;
   location?: string;
   rating?: number;
+  avatarUrl?: string;
 }
 
 interface OurWorkPageContentProps {
   projects: Project[];
   testimonials: Testimonial[];
   contactPhone?: string;
+  settings?: Record<string, unknown>;
 }
 
 const imageTones = ['bg-slate-200', 'bg-slate-300', 'bg-slate-100', 'bg-slate-200'] as const;
@@ -43,6 +46,7 @@ const fallbackProjects: (Project & { categoryLabel: string; tone: string })[] = 
     categoryLabel: 'Remodeling',
     isFeatured: true,
     tone: 'bg-slate-300',
+    coverImageUrl: BEFORE_AFTER_SETS[0].after,
   },
   {
     id: 'fb-2',
@@ -50,6 +54,7 @@ const fallbackProjects: (Project & { categoryLabel: string; tone: string })[] = 
     description: 'Spa-inspired bathroom with new tile, fixtures, and vanity installation.',
     categoryLabel: 'Remodeling',
     tone: 'bg-slate-200',
+    coverImageUrl: BEFORE_AFTER_SETS[1].after,
   },
   {
     id: 'fb-3',
@@ -57,6 +62,7 @@ const fallbackProjects: (Project & { categoryLabel: string; tone: string })[] = 
     description: 'Complete roof installation with premium weather-resistant materials.',
     categoryLabel: 'Roofing',
     tone: 'bg-slate-100',
+    coverImageUrl: BEFORE_AFTER_SETS[2].after,
   },
   {
     id: 'fb-4',
@@ -64,6 +70,7 @@ const fallbackProjects: (Project & { categoryLabel: string; tone: string })[] = 
     description: 'Custom AC cage and burglar door setup for a Houston residential property.',
     categoryLabel: 'Security',
     tone: 'bg-slate-300',
+    coverImageUrl: BEFORE_AFTER_SETS[4].after,
   },
   {
     id: 'fb-5',
@@ -71,6 +78,7 @@ const fallbackProjects: (Project & { categoryLabel: string; tone: string })[] = 
     description: 'Full exterior repaint with power washing and trim detail work.',
     categoryLabel: 'Painting',
     tone: 'bg-slate-200',
+    coverImageUrl: BEFORE_AFTER_SETS[5].after,
   },
   {
     id: 'fb-6',
@@ -78,14 +86,15 @@ const fallbackProjects: (Project & { categoryLabel: string; tone: string })[] = 
     description: 'Office space upgrade — flooring, partitions, and electrical updates.',
     categoryLabel: 'Commercial',
     tone: 'bg-slate-100',
+    coverImageUrl: BEFORE_AFTER_SETS[6].after,
   },
 ];
 
 const stats = [
-  { value: '500+', label: 'Projects Completed' },
-  { value: '15+', label: 'Years Experience' },
-  { value: '98%', label: 'Client Satisfaction' },
-  { value: 'Houston', label: 'Based in Texas' },
+  { value: 500, suffix: '+', label: 'Projects Completed' },
+  { value: 15, suffix: '+', label: 'Years Experience' },
+  { value: 98, suffix: '%', label: 'Client Satisfaction' },
+  { value: 0, suffix: '', label: 'Based in Texas', display: 'Houston' },
 ];
 
 function ProjectImage({
@@ -98,10 +107,12 @@ function ProjectImage({
   className?: string;
 }) {
   if (src) {
+    const resolved = resolveAssetUrl(src) ?? resolveImageUrl(src);
+    if (!resolved) return null;
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={src.startsWith('http') ? src : `${API_BASE}${src}`}
+        src={resolved}
         alt=""
         className={cn('h-full w-full object-cover transition duration-500 group-hover:scale-105', className)}
       />
@@ -182,9 +193,14 @@ function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-xl font-bold text-navy ring-4 ring-white shadow-md"
+                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-xl font-bold text-navy ring-4 ring-white shadow-md"
               >
-                {t.name.charAt(0)}
+                {resolveImageUrl(t.avatarUrl) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={resolveImageUrl(t.avatarUrl)!} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  t.name.charAt(0)
+                )}
               </motion.div>
 
               <motion.div
@@ -250,7 +266,12 @@ function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) 
   );
 }
 
-export function OurWorkPageContent({ projects, testimonials, contactPhone = '(346) 365-7221' }: OurWorkPageContentProps) {
+export function OurWorkPageContent({
+  projects,
+  testimonials,
+  contactPhone = '(346) 365-7221',
+  settings = {},
+}: OurWorkPageContentProps) {
   const [filter, setFilter] = useState('All');
 
   const displayProjects = useMemo(() => {
@@ -278,8 +299,9 @@ export function OurWorkPageContent({ projects, testimonials, contactPhone = '(34
   return (
     <>
       {/* Hero */}
-      <section className="bg-navy px-4 py-14 lg:px-8 lg:py-16">
-        <div className="mx-auto max-w-7xl">
+      <section className="relative overflow-hidden bg-navy px-4 py-14 lg:px-8 lg:py-16">
+        <SectionBg theme="portfolio" tone="navy" />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">Portfolio</p>
             <h1 className="mt-3 text-4xl font-bold text-white lg:text-5xl">Our Work</h1>
@@ -296,11 +318,14 @@ export function OurWorkPageContent({ projects, testimonials, contactPhone = '(34
       </section>
 
       {/* Stats strip */}
-      <section className="border-b border-border bg-white py-10 px-4 lg:px-8">
-        <StaggerChildren className="mx-auto grid max-w-7xl grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
+      <section className="relative overflow-hidden border-b border-border bg-white py-10 px-4 lg:px-8">
+        <SectionBg theme="home" tone="light" />
+        <StaggerChildren className="relative z-10 mx-auto grid max-w-7xl grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
           {stats.map((s) => (
             <StaggerItem key={s.label} className="text-center">
-              <p className="text-2xl font-bold text-navy lg:text-3xl">{s.value}</p>
+              <p className="text-2xl font-bold text-navy lg:text-3xl">
+                {'display' in s && s.display ? s.display : <CountUp value={s.value} suffix={s.suffix} />}
+              </p>
               <p className="mt-1 text-sm text-slate-500">{s.label}</p>
             </StaggerItem>
           ))}
@@ -308,8 +333,9 @@ export function OurWorkPageContent({ projects, testimonials, contactPhone = '(34
       </section>
 
       {/* Gallery */}
-      <section className="py-16 px-4 lg:px-8 lg:py-20">
-        <div className="mx-auto max-w-7xl">
+      <section className="relative overflow-hidden py-16 px-4 lg:px-8 lg:py-20">
+        <SectionBg theme="renovation" tone="light" />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-dark">Selected Projects</p>
@@ -335,10 +361,19 @@ export function OurWorkPageContent({ projects, testimonials, contactPhone = '(34
             </div>
           </AnimateIn>
 
-          {displayProjects.length === 0 ? (
-            <p className="mt-16 text-center text-slate-400">No projects in this category yet.</p>
-          ) : (
-            <StaggerChildren className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <AnimatePresence mode="wait">
+            {displayProjects.length === 0 ? (
+              <motion.p
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="mt-16 text-center text-slate-400"
+              >
+                No projects in this category yet.
+              </motion.p>
+            ) : (
+              <StaggerChildren key={filter} className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {displayProjects.map((project, index) => {
                 const featured = project.isFeatured && index === 0 && filter === 'All';
                 const category = getCategoryLabel(project);
@@ -379,16 +414,18 @@ export function OurWorkPageContent({ projects, testimonials, contactPhone = '(34
                   </StaggerItem>
                 );
               })}
-            </StaggerChildren>
-          )}
+              </StaggerChildren>
+            )}
+          </AnimatePresence>
         </div>
       </section>
 
       <TestimonialsSection testimonials={testimonials} />
 
       {/* CTA */}
-      <section className="bg-navy py-16 px-4 lg:px-8">
-        <AnimateIn className="mx-auto max-w-3xl text-center">
+      <section className="relative overflow-hidden bg-navy py-16 px-4 lg:px-8">
+        <SectionBg theme="security" tone="navy" />
+        <AnimateIn className="relative z-10 mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">Start Your Project</p>
           <h2 className="mt-3 text-2xl font-bold text-white lg:text-3xl">
             Ready to transform your space?

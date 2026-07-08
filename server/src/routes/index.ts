@@ -43,6 +43,8 @@ import {
   updateProject,
   updateSettings,
   uploadImage,
+  listMedia,
+  deleteMedia,
 } from '../controllers/content.controller';
 import {
   createService,
@@ -95,8 +97,10 @@ router.post('/bookings', createBooking);
 router.post('/contact', createContact);
 router.post('/newsletter', subscribeNewsletter);
 
-// Upload
+// Upload & media
 router.post('/admin/upload', requireAuth, requireAdmin, upload.single('file'), uploadImage);
+router.get('/admin/media', requireAuth, requireAdmin, listMedia);
+router.delete('/admin/media/:filename', requireAuth, requireAdmin, deleteMedia);
 
 // Dashboard
 router.get('/admin/stats', requireAuth, requireAdmin, getStats);

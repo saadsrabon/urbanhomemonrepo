@@ -4,7 +4,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { adminApi, uploadFile } from '@/lib/api';
+import { adminApi } from '@/lib/api';
+import { ImageUploadField } from '@/components/admin/ImageUploadField';
 
 interface ServiceForm {
   categoryId: string;
@@ -85,11 +86,6 @@ export default function EditServicePage() {
     },
   });
 
-  const upload = async (field: 'imageUrl' | 'beforeImageUrl' | 'afterImageUrl', file: File) => {
-    const { url } = await uploadFile(file);
-    setForm((f) => (f ? { ...f, [field]: url } : f));
-  };
-
   if (isLoading || !form) return <p className="text-navy">Loading...</p>;
 
   const slug = service?.slug as string;
@@ -130,13 +126,12 @@ export default function EditServicePage() {
       <div className="card space-y-4">
         <h2 className="font-semibold text-navy">Images</h2>
         {(['imageUrl', 'beforeImageUrl', 'afterImageUrl'] as const).map((field) => (
-          <div key={field}>
-            <label className="mb-1 block text-xs font-medium uppercase text-slate-500">
-              {field === 'imageUrl' ? 'Hero image' : field === 'beforeImageUrl' ? 'Before image' : 'After image'}
-            </label>
-            <input className="input mb-2" value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder="/uploads/..." />
-            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && upload(field, e.target.files[0])} />
-          </div>
+          <ImageUploadField
+            key={field}
+            label={field === 'imageUrl' ? 'Hero image' : field === 'beforeImageUrl' ? 'Before image' : 'After image'}
+            value={form[field]}
+            onChange={(url) => setForm({ ...form, [field]: url })}
+          />
         ))}
         <p className="text-xs text-slate-400">Leave before/after empty to show the interactive slider placeholder on the page.</p>
       </div>

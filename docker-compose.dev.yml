@@ -1,0 +1,13 @@
+# Local development overrides (use with base docker-compose.yml).
+# Dockploy deploy uses docker-compose.yml only — no host port publish needed there.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up postgres -d
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+networks:
+  dokploy-network:
+    external: false

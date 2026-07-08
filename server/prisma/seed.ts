@@ -295,6 +295,7 @@ async function main() {
     tagline: 'One Stop Handyman Service',
     contactEmail: 'info@urbanhomeandsecurity.com',
     contactPhone: '(346) 365-7221',
+    workingHours: 'Mon–Fri: 8 AM – 5 PM\nSat–Sun: 8 AM – 2 PM',
     address: 'Houston, TX',
     heroTitle: 'We Will Make Your Home Better',
     heroSubtitle: 'Exceptional services like Repairing, Plumbing, Electrical, and Security within your budget',
@@ -315,6 +316,67 @@ async function main() {
       update: { value },
       create: { key, value },
     });
+  }
+
+  const sampleProjects = [
+    {
+      title: 'Kitchen Remodeling',
+      categoryId: homeImprovement.id,
+      coverImageUrl: '/uploads/project-kitchen-remodel.jpg',
+      description: 'Full kitchen transformation with custom cabinets, quartz countertops, and modern lighting.',
+      isFeatured: true,
+      sortOrder: 1,
+    },
+    {
+      title: 'Bathroom Renovation',
+      categoryId: homeImprovement.id,
+      coverImageUrl: '/uploads/project-bathroom-renovation.jpg',
+      description: 'Spa-inspired bathroom with new tile, fixtures, and vanity installation.',
+      isFeatured: true,
+      sortOrder: 2,
+    },
+    {
+      title: 'Roof Replacement',
+      categoryId: homeImprovement.id,
+      coverImageUrl: '/uploads/project-roof-replacement.jpg',
+      description: 'Complete roof installation with premium weather-resistant materials.',
+      sortOrder: 3,
+    },
+    {
+      title: 'Burglar Door & AC Cage',
+      categoryId: securityServices.id,
+      coverImageUrl: '/uploads/project-security-door.jpg',
+      description: 'Custom security door and AC steel cage installation for a Houston residential property.',
+      sortOrder: 4,
+    },
+    {
+      title: 'Exterior Painting',
+      categoryId: homeImprovement.id,
+      coverImageUrl: '/uploads/project-exterior-paint.jpg',
+      description: 'Full exterior repaint with power washing and trim detail work.',
+      sortOrder: 5,
+    },
+    {
+      title: 'Living Space Remodel',
+      categoryId: homeImprovement.id,
+      coverImageUrl: '/uploads/project-living-remodel.jpg',
+      description: 'Open-concept living area upgrade with new flooring, lighting, and built-ins.',
+      sortOrder: 6,
+    },
+  ];
+
+  for (const project of sampleProjects) {
+    const existing = await prisma.project.findFirst({ where: { title: project.title } });
+    if (!existing) {
+      await prisma.project.create({
+        data: {
+          ...project,
+          images: project.coverImageUrl ? [project.coverImageUrl] : [],
+          completedAt: new Date(),
+          isActive: true,
+        },
+      });
+    }
   }
 
   console.log('Seed completed');

@@ -44,6 +44,16 @@ body {
   @apply rounded-xl border border-border bg-white p-6 shadow-sm;
 }
 
+.rdp-appointment {
+  --rdp-accent-color: #f2a81d;
+  --rdp-accent-background-color: #fef3d6;
+  margin: 0;
+}
+
+.rdp-appointment .rdp-month {
+  width: 100%;
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -55,6 +65,86 @@ body {
   }
 }
 
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes pulse-live {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes gradient-pan {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.marquee-track {
+  animation: marquee linear infinite;
+}
+
+.live-dot {
+  animation: pulse-live 1.5s ease-in-out infinite;
+}
+
+.animated-underline {
+  position: relative;
+}
+
+.animated-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animated-underline:hover::after,
+.animated-underline.is-active::after {
+  transform: scaleX(1);
+}
+
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .marquee-track {
+    animation: none;
+  }
+  .live-dot {
+    animation: none;
+  }
 }

@@ -1,13 +1,23 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { rootMetadata } from '@/lib/seo';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  preload: true,
+});
 
-export const metadata: Metadata = {
-  title: 'Urban Home & Security | One Stop Handyman Service',
-  description: 'Professional home improvement and security services in Houston, TX. Remodeling, roofing, security installations, and more.',
+export const metadata: Metadata = rootMetadata;
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#0e2148',
+  colorScheme: 'light',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -27,11 +27,13 @@ Custom rebuild of [urbanhomeandsecurity.com](https://urbanhomeandsecurity.com) w
 # Clone and install
 npm install
 
-# Copy environment
+# Copy environment (root `.env` for Docker; `server/.env` for local API — see `.env.example`)
 cp .env.example .env
+cp .env.example server/.env
+# Local dev: set POSTGRES_PASSWORD=postgres and DATABASE_URL with localhost:5433 in server/.env
 
-# Start PostgreSQL
-docker compose up postgres -d
+# Start PostgreSQL (host port 5433; production Dockploy uses docker-compose.yml only)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up postgres -d
 
 # Run migrations and seed
 npm run db:migrate
@@ -61,7 +63,8 @@ npm run dev
 │   └── src/         # Routes, controllers, middleware
 ├── web/             # Next.js app (admin + public)
 ├── nginx/           # Reverse proxy config
-└── docker-compose.yml
+├── docker-compose.yml
+└── docker-compose.dev.yml  # local Postgres port 5433
 ```
 
 ## API Overview

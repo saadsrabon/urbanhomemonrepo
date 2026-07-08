@@ -1,22 +1,34 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { resolveImageUrl } from '@/lib/images';
+import { resolveAssetUrl } from '@/lib/sectionBackgrounds';
 import { cn } from '@/lib/utils';
 
 interface BeforeAfterSliderProps {
   className?: string;
   beforeLabel?: string;
   afterLabel?: string;
+  beforeUrl?: string | null;
+  afterUrl?: string | null;
+  caption?: string;
 }
 
 export function BeforeAfterSlider({
   className,
   beforeLabel = 'Before',
   afterLabel = 'After',
+  beforeUrl,
+  afterUrl,
+  caption,
 }: BeforeAfterSliderProps) {
   const [position, setPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+
+  const beforeSrc = resolveAssetUrl(beforeUrl) ?? resolveImageUrl(beforeUrl);
+  const afterSrc = resolveAssetUrl(afterUrl) ?? resolveImageUrl(afterUrl);
+  const hasImages = Boolean(beforeSrc && afterSrc);
 
   const updatePosition = useCallback((clientX: number) => {
     const el = containerRef.current;
@@ -42,26 +54,53 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
-      className={cn('relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl bg-slate-200', className)}
+      className={cn(
+        'relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl bg-slate-200',
+        className
+      )}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
       {/* After (full width background) */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-        <div className="mb-3 h-16 w-16 rounded-lg border-2 border-dashed border-slate-300 bg-white/60" />
-        <span className="text-sm font-medium text-slate-500">{afterLabel}</span>
-        <span className="mt-1 text-xs text-slate-400">Renovated kitchen · placeholder</span>
+      <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+        {afterSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={afterSrc} alt={afterLabel} className="h-full w-full object-cover" draggable={false} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+            <div className="mb-3 h-16 w-16 rounded-lg border-2 border-dashed border-slate-300 bg-white/60" />
+            <span className="text-sm font-medium text-slate-500">{afterLabel}</span>
+            <span className="mt-1 text-xs text-slate-400">Renovated space · placeholder</span>
+          </div>
+        )}
+        {hasImages && (
+          <div className="pointer-events-none absolute right-4 top-4 rounded-md bg-navy/80 px-3 py-1 text-xs font-medium text-white">
+            {afterLabel}
+          </div>
+        )}
       </div>
 
       {/* Before (clipped) */}
       <div
-        className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-300 to-slate-400"
+        className="absolute inset-0 overflow-hidden rounded-[inherit]"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
       >
-        <div className="mb-3 h-16 w-16 rounded-lg border-2 border-dashed border-slate-500/40 bg-white/30" />
-        <span className="text-sm font-medium text-slate-600">{beforeLabel}</span>
-        <span className="mt-1 text-xs text-slate-500">Original space · placeholder</span>
+        {beforeSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={beforeSrc} alt={beforeLabel} className="h-full w-full object-cover" draggable={false} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-300 to-slate-400">
+            <div className="mb-3 h-16 w-16 rounded-lg border-2 border-dashed border-slate-500/40 bg-white/30" />
+            <span className="text-sm font-medium text-slate-600">{beforeLabel}</span>
+            <span className="mt-1 text-xs text-slate-500">Original space · placeholder</span>
+          </div>
+        )}
+        {hasImages && (
+          <div className="pointer-events-none absolute left-4 top-4 rounded-md bg-navy/80 px-3 py-1 text-xs font-medium text-white">
+            {beforeLabel}
+          </div>
+        )}
       </div>
 
       {/* Divider handle */}
@@ -78,7 +117,7 @@ export function BeforeAfterSlider({
       </div>
 
       <div className="pointer-events-none absolute bottom-4 left-4 rounded-md bg-navy/80 px-3 py-1 text-xs font-medium text-white">
-        Drag to compare
+        {caption || 'Drag to compare'}
       </div>
     </div>
   );

@@ -49,11 +49,12 @@ export async function api<T>(
   return res.json();
 }
 
-export async function uploadFile(file: File): Promise<{ url: string }> {
+export async function uploadFile(file: File, type: 'image' | 'icon' = 'image'): Promise<{ url: string }> {
   const token = getToken();
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${API_URL}/admin/upload`, {
+  const query = type === 'icon' ? '?type=icon' : '';
+  const res = await fetch(`${API_URL}/admin/upload${query}`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
@@ -138,6 +139,18 @@ export const adminApi = {
   deleteProject: (id: string) => api(`/admin/projects/${id}`, { method: 'DELETE' }),
   settings: () => api<Record<string, unknown>>('/admin/settings'),
   updateSettings: (data: unknown) => api('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
+  media: () =>
+    api<
+      {
+        filename: string;
+        url: string;
+        size: number;
+        uploadedAt: string;
+        mimeType: string;
+      }[]
+    >('/admin/media'),
+  deleteMedia: (filename: string) =>
+    api(`/admin/media/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
 };
 
 export const authApi = {

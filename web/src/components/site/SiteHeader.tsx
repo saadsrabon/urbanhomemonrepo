@@ -1,76 +1,125 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { useState } from 'react';
-import { Menu, X, Phone } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import { Phone } from 'lucide-react';
+import { BrandLogoImage } from './BrandLogo';
+import { MobileNav, HamburgerButton } from './MobileNav';
+import { MagneticButton } from './AnimateIn';
+import {
+  NavMegaMenu,
+  NavMegaMenuPanel,
+  type NavService,
+  type NavProject,
+  type MegaMenuId,
+} from './NavMegaMenu';
 import { cn } from '@/lib/utils';
 
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/about', label: 'About' },
-  { href: '/services', label: 'Services' },
-  { href: '/our-work', label: 'Our Work' },
-  { href: '/appointment', label: 'Appointment' },
-  { href: '/contact', label: 'Contact' },
-];
+const SCROLL_THRESHOLD = 48;
 
-export function SiteHeader() {
+export function SiteHeader({
+  logoUrl,
+  services = [],
+  projects = [],
+}: {
+  logoUrl?: string;
+  services?: NavService[];
+  projects?: NavProject[];
+}) {
+  const pathname = usePathname();
+  const isHome = pathname === '/';
   const [open, setOpen] = useState(false);
+  const [megaOpen, setMegaOpen] = useState<MegaMenuId | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { scrollY } = useScroll();
+
+  useEffect(() => {
+    setMounted(true);
+    setScrolled(window.scrollY > SCROLL_THRESHOLD);
+  }, [pathname]);
+
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    if (!mounted) return;
+    setScrolled(y > SCROLL_THRESHOLD);
+  });
+
+  const overlayNav = mounted && isHome && !scrolled;
+  const showScrolledHeader = mounted && scrolled;
+
+  const scheduleMegaClose = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setMegaOpen(null), 150);
+  }, []);
+
+  const cancelMegaClose = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
+
+  const openMega = useCallback((id: MegaMenuId) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setMegaOpen(id);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
-        <Link href="/" className="flex items-center gap-3">
-          <Image src="/logo.png" alt="Urban Home & Security" width={44} height={44} className="h-10 w-10 object-contain" />
-          <div className="hidden sm:block">
-            <span className="block text-base font-bold leading-none text-navy">URBAN</span>
-            <span className="text-[10px] font-medium tracking-wider text-slate-500">HOME & SECURITY</span>
-          </div>
-        </Link>
+    <>
+      <motion.header
+        className={cn(
+          'fixed inset-x-0 top-0 z-50 transition-[border-color,backdrop-filter] duration-300',
+          showScrolledHeader
+            ? 'border-b border-border/60 bg-white/95 shadow-[0_4px_24px_rgba(14,33,72,0.08)] backdrop-blur-md'
+            : 'border-b border-transparent bg-transparent'
+        )}
+        onMouseLeave={scheduleMegaClose}
+      >
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8 lg:py-3">
+          <Link href="/" className="flex shrink-0 items-center">
+            <BrandLogoImage logoUrl={logoUrl} className="h-[5.04rem] w-auto lg:h-[6.12rem]" />
+          </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium text-slate-600 transition hover:text-navy"
+          <NavMegaMenu
+            openMenu={megaOpen}
+            onOpen={openMega}
+            onScheduleClose={scheduleMegaClose}
+            variant={overlayNav ? 'light' : 'dark'}
+          />
+
+          <div className="hidden items-center gap-4 lg:flex">
+            <a
+              href="tel:+13463657221"
+              className={cn(
+                'flex items-center gap-2 text-sm font-medium transition',
+                overlayNav ? 'text-white/90 hover:text-gold' : 'text-navy hover:text-gold-dark'
+              )}
             >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+              <Phone className="h-4 w-4 text-gold" />
+              (346) 365-7221
+            </a>
+            <MagneticButton href="/appointment" className="btn-primary">
+              Get A Quote
+            </MagneticButton>
+          </div>
 
-        <div className="hidden items-center gap-4 lg:flex">
-          <a href="tel:+13463657221" className="flex items-center gap-2 text-sm font-medium text-navy">
-            <Phone className="h-4 w-4 text-gold" />
-            (346) 365-7221
-          </a>
-          <Link href="/appointment" className="btn-primary">Get A Quote</Link>
+          <HamburgerButton open={open} onClick={() => setOpen(!open)} light={overlayNav} />
         </div>
 
-        <button type="button" className="rounded-lg p-2 text-navy lg:hidden" onClick={() => setOpen(!open)} aria-label="Menu">
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
+        <NavMegaMenuPanel
+          openMenu={megaOpen}
+          services={services}
+          projects={projects}
+          onClose={() => setMegaOpen(null)}
+          onMouseEnter={cancelMegaClose}
+          onMouseLeave={scheduleMegaClose}
+        />
+      </motion.header>
 
-      <div className={cn('border-t border-border lg:hidden', open ? 'block' : 'hidden')}>
-        <nav className="flex flex-col gap-1 px-4 py-4">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-muted hover:text-navy"
-              onClick={() => setOpen(false)}
-            >
-              {l.label}
-            </Link>
-          ))}
-          <Link href="/appointment" className="btn-primary mt-2 text-center" onClick={() => setOpen(false)}>
-            Get A Quote
-          </Link>
-        </nav>
-      </div>
-    </header>
+      {/* Spacer for fixed header — home hero pulls under via negative margin */}
+      <div className="h-[5.5rem] shrink-0 lg:h-[6.75rem]" aria-hidden />
+
+      <MobileNav open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

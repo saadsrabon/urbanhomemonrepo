@@ -11,7 +11,9 @@
     "build": "npm run build -w server && npm run build -w web",
     "db:migrate": "npm run db:migrate -w server",
     "db:seed": "npm run db:seed -w server",
-    "db:studio": "npm run db:studio -w server"
+    "db:studio": "npm run db:studio -w server",
+    "db:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up postgres -d",
+    "db:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml stop postgres"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

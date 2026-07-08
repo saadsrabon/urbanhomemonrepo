@@ -3,67 +3,49 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Wrench,
-  Shield,
-  Paintbrush,
-  Home,
-  Zap,
-  Droplets,
   Star,
-  Phone,
   ChevronRight,
   Check,
 } from 'lucide-react';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
-import { AnimateIn, StaggerChildren, StaggerItem } from './AnimateIn';
-import { ImagePlaceholder } from './ImagePlaceholder';
+import { HeroBeforeAfterCarousel } from './HeroBeforeAfterCarousel';
+import { AnimateIn, StaggerChildren, StaggerItem, CountUp, Marquee, MagneticButton } from './AnimateIn';
 import { PricingSection } from './PricingSection';
+import { parseHeroBeforeAfterSlides, resolveImageUrl } from '@/lib/images';
+import {
+  BEFORE_AFTER_SETS,
+  HERO_BEFORE_AFTER,
+  RECENT_WORK,
+  getBeforeAfterByCategory,
+  getSectionImage,
+  type BeforeAfterCategory,
+} from '@/lib/sectionBackgrounds';
+import { SectionBg, SectionPhoto } from './SectionBackdrop';
+import { TeamCarousel } from './TeamCarousel';
+import { HomeAboutSection } from './HomeAboutSection';
+import { HomeServicesSection } from './HomeServicesSection';
+import { HomeFinalCta } from './HomeFinalCta';
+import { buildTeamSlides } from '@/lib/teamPros';
 
-function getIcon(slug: string) {
-  if (slug.includes('security') || slug.includes('cage') || slug.includes('guard')) return Shield;
-  if (slug.includes('paint')) return Paintbrush;
-  if (slug.includes('roof')) return Home;
-  if (slug.includes('electrical')) return Zap;
-  if (slug.includes('plumb')) return Droplets;
-  return Wrench;
-}
-
-const quickServices = [
-  { label: 'Electrician', icon: Zap },
-  { label: 'Carpenter', icon: Wrench },
-  { label: 'Plumbing', icon: Droplets },
-  { label: 'Pest Control', icon: Shield },
+const serviceMarquee = [
+  'Roofing', 'Plumbing', 'Electrical', 'Security', 'Remodeling',
+  'Painting', 'Handyman', 'Pest Control', 'AC Cage', 'Burglar Doors',
 ];
 
-const steps = [
-  { n: '01', title: 'Book Online', desc: 'Select your service and preferred time slot online.' },
-  { n: '02', title: 'Contact Professional', desc: 'Our team reviews your request and reaches out promptly.' },
-  { n: '03', title: 'Confirmation', desc: 'Receive email confirmation with your appointment details.' },
-  { n: '04', title: 'Work Status', desc: 'Track progress as our crew completes your project.' },
-  { n: '05', title: 'Completion', desc: 'Quality-checked handoff when the job is done right.' },
-  { n: '06', title: 'Provide Feedback', desc: 'Share your experience so we can keep improving.' },
-];
-
-const galleryFilters = ['All', 'Roofing', 'Remodeling', 'Security', 'Others'];
-const galleryItems = [
-  { title: 'Kitchen Remodel', cat: 'Remodeling' },
-  { title: 'Roof Installation', cat: 'Roofing' },
-  { title: 'AC Steel Cage', cat: 'Security' },
-  { title: 'Bathroom Renovation', cat: 'Remodeling' },
-  { title: 'Exterior Paint', cat: 'Others' },
-  { title: 'Burglar Door', cat: 'Security' },
-];
-
-const recentWork = [
-  { title: 'Kitchen Remodeling', desc: 'Full kitchen transformation with custom cabinets and modern finishes.' },
-  { title: 'Roof Replacement', desc: 'Complete roof installation with premium weather-resistant materials.' },
-  { title: 'Security Installation', desc: 'Steel cage and burglar door setup for residential property.' },
-];
+const galleryFilters: BeforeAfterCategory[] = ['All', 'Remodeling', 'Roofing', 'Security', 'Others'];
 
 interface HomeContentProps {
-  services: { id: string; title: string; slug: string; shortDesc?: string }[];
-  testimonials: { id: string; quote: string; name: string; role?: string; location?: string; rating?: number }[];
-  team: { id: string; name: string; teamProfile?: { designation: string; yearsExperience: number } }[];
+  services: {
+    id: string;
+    title: string;
+    slug: string;
+    shortDesc?: string | null;
+    imageUrl?: string | null;
+    category?: { name: string } | null;
+  }[];
+  projects: { coverImageUrl?: string | null }[];
+  testimonials: { id: string; quote: string; name: string; role?: string; location?: string; rating?: number; avatarUrl?: string }[];
+  team: { id: string; name: string; avatarUrl?: string; teamProfile?: { designation: string; yearsExperience: number; photoUrl?: string } }[];
   pricing: { id: string; name: string; priceMonthly: number; priceYearly: number; features: string[]; isFeatured?: boolean }[];
   faqs: { id: string; question: string; answer: string }[];
   settings: Record<string, unknown>;
@@ -71,13 +53,14 @@ interface HomeContentProps {
 
 export function HomePageContent({
   services,
+  projects,
   testimonials,
   team,
   pricing,
   faqs,
   settings,
 }: HomeContentProps) {
-  const [galleryFilter, setGalleryFilter] = useState('All');
+  const [galleryFilter, setGalleryFilter] = useState<BeforeAfterCategory>('All');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [pricingYearly, setPricingYearly] = useState(false);
 
@@ -88,155 +71,180 @@ export function HomePageContent({
     { value: (settings.statBranches as number) || 4, suffix: '+', label: 'No. of Branches' },
   ];
 
-  const filteredGallery =
-    galleryFilter === 'All'
-      ? galleryItems
-      : galleryItems.filter((g) => g.cat === galleryFilter);
+  const filteredGallery = getBeforeAfterByCategory(galleryFilter);
+
+  const heroBackgroundUrl = resolveImageUrl(settings.heroImageUrl as string | undefined);
+  const cmsHeroSlides = parseHeroBeforeAfterSlides(settings.heroBeforeAfterSlides);
+  const fallbackHeroSlides = BEFORE_AFTER_SETS.slice(0, 4).map((s) => ({
+    before: s.before,
+    after: s.after,
+    caption: s.caption,
+  }));
+  const heroSlides = cmsHeroSlides.length > 0 ? cmsHeroSlides : fallbackHeroSlides;
+  const heroBgImage = heroBackgroundUrl || getSectionImage('home');
+  const teamSlides = buildTeamSlides(team);
+  const contactPhone = (settings.contactPhone as string) || '(346) 365-7221';
 
   return (
     <>
-      {/* Hero + Before/After */}
-      <section className="relative bg-white">
-        <div className="mx-auto max-w-7xl px-4 pt-8 lg:px-8 lg:pt-12">
+      {/* Hero — full bleed under transparent navbar */}
+      <section className="relative -mt-[5.5rem] overflow-hidden lg:-mt-[6.75rem]">
+        <div className="pointer-events-none absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={heroBgImage} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-navy/55 via-navy/30 to-white" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-[6.5rem] sm:pb-12 sm:pt-[7rem] lg:px-8 lg:pb-16 lg:pt-[8rem]">
           <AnimateIn>
-            <BeforeAfterSlider className="shadow-xl ring-1 ring-slate-200" />
+            {heroSlides.length > 0 ? (
+              <HeroBeforeAfterCarousel slides={heroSlides} />
+            ) : heroBackgroundUrl ? (
+              <div className="aspect-[16/10] overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={heroBackgroundUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <BeforeAfterSlider
+                className="shadow-xl ring-1 ring-white/20"
+                beforeUrl={HERO_BEFORE_AFTER.before}
+                afterUrl={HERO_BEFORE_AFTER.after}
+                caption={HERO_BEFORE_AFTER.caption}
+              />
+            )}
           </AnimateIn>
 
-          <AnimateIn delay={0.15} className="relative z-10 -mt-8 mx-auto max-w-4xl rounded-2xl bg-navy px-6 py-8 text-center shadow-2xl lg:-mt-12 lg:px-12 lg:py-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <AnimateIn
+            delay={0.15}
+            className="relative z-10 -mt-6 mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/10 shadow-2xl sm:-mt-8 lg:-mt-12"
+          >
+            <div className="relative px-5 py-6 text-center sm:px-6 sm:py-8 lg:px-12 lg:py-10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroBgImage}
+                alt=""
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                aria-hidden
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-navy/95 via-navy/88 to-navy-light/90" aria-hidden />
+              <div className="relative z-10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gold sm:text-sm sm:tracking-[0.2em]">
               {(settings.tagline as string) || 'One Stop Handyman Service'}
             </p>
-            <h1 className="mt-3 text-2xl font-bold leading-snug text-white lg:text-4xl">
+            <h1 className="mt-2 text-xl font-bold leading-snug text-white sm:mt-3 sm:text-2xl lg:text-4xl">
               {(settings.heroTitle as string) || 'We Will Make Your Home Better'}
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-sm text-white/70 lg:text-base">
+            <p className="mx-auto mt-3 max-w-2xl text-xs text-white/70 sm:mt-4 sm:text-sm lg:text-base">
               {(settings.heroSubtitle as string) ||
                 'Exceptional services like Repairing, Plumbing, Electrical, and Security within your budget.'}
             </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Link href="/appointment" className="btn-primary px-8 py-3">
+            <div className="mt-5 flex flex-col gap-2.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
+              <MagneticButton href="/appointment" className="btn-primary w-full px-8 py-3 sm:w-auto">
                 Get A Quote
-              </Link>
-              <Link href="/services" className="btn-secondary border-white/20 bg-white/10 text-white hover:bg-white/20">
+              </MagneticButton>
+              <Link href="/services" className="btn-secondary w-full border-white/20 bg-white/10 px-8 py-3 text-center text-white hover:bg-white/20 sm:w-auto">
                 Our Services
               </Link>
+            </div>
+              </div>
             </div>
           </AnimateIn>
         </div>
       </section>
 
       {/* Stats bar */}
-      <section className="mt-16 bg-navy py-10">
-        <StaggerChildren className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-4 lg:grid-cols-4 lg:px-8">
+      <section className="bg-navy py-8 sm:py-10">
+        <StaggerChildren className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 sm:gap-6 lg:grid-cols-4 lg:px-8">
           {stats.map((s) => (
             <StaggerItem key={s.label} className="text-center">
-              <p className="text-3xl font-bold text-gold lg:text-4xl">
-                {s.value}
-                {s.suffix}
+              <p className="text-2xl font-bold text-gold sm:text-3xl lg:text-4xl">
+                <CountUp value={s.value} suffix={s.suffix} />
               </p>
-              <p className="mt-1 text-sm text-white/70">{s.label}</p>
+              <p className="mt-1 text-xs text-white/70 sm:text-sm">{s.label}</p>
             </StaggerItem>
           ))}
         </StaggerChildren>
       </section>
 
-      {/* About + quick service cards */}
-      <section className="py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid items-end gap-10 lg:grid-cols-2">
-            <AnimateIn>
-              <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">About Us</p>
-              <h2 className="mt-2 text-3xl font-bold leading-tight text-navy lg:text-4xl">
-                We Will Make Your Home Better By Providing Exceptional Services Within Your Budget
-              </h2>
-              <p className="mt-4 text-slate-600 leading-relaxed">
-                From remodeling and roofing to security installations and electrical work — Urban Home & Security
-                delivers reliable craftsmanship for homes and businesses across Houston and beyond.
-              </p>
-              <Link href="/about" className="btn-secondary mt-6 inline-flex items-center gap-2">
-                More Details <ChevronRight className="h-4 w-4" />
-              </Link>
-            </AnimateIn>
-
-            <StaggerChildren className="grid grid-cols-2 gap-4">
-              {quickServices.map(({ label, icon: Icon }) => (
-                <StaggerItem key={label}>
-                  <div className="group rounded-xl border border-border bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-gold hover:shadow-md">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-navy/5 text-navy transition group-hover:bg-gold/20 group-hover:text-gold-dark">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <p className="font-semibold text-navy">{label}</p>
-                  </div>
-                </StaggerItem>
-              ))}
-            </StaggerChildren>
-          </div>
-        </div>
+      {/* Service marquee */}
+      <section className="border-y border-border bg-white py-4">
+        <Marquee items={serviceMarquee} speed={35} />
       </section>
 
-      {/* Services grid */}
-      <section className="bg-muted py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      <HomeAboutSection />
+
+      <HomeServicesSection services={services} />
+
+      {/* Before & After — proof early in the story */}
+      <section className="relative overflow-hidden py-20 px-4 lg:px-8">
+        <SectionBg theme="renovation" tone="light" />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">Urban Home & Security</p>
-            <h2 className="mt-2 text-3xl font-bold text-navy">Our Services</h2>
+            <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">Transformations</p>
+            <h2 className="mt-2 text-3xl font-bold text-navy">Before & After</h2>
             <p className="mx-auto mt-3 max-w-2xl text-slate-600">
-              Comprehensive solutions for every property need — home improvement and security under one roof.
+              See the difference our team makes — quality remodeling and restoration on every project.
             </p>
           </AnimateIn>
 
-          <StaggerChildren className="mt-12 grid gap-5 sm:grid-cols-2">
-            {services.slice(0, 8).map((s) => {
-              const Icon = getIcon(s.slug);
-              return (
-                <StaggerItem key={s.id}>
-                  <Link
-                    href={`/services/${s.slug}`}
-                    className="group flex gap-4 rounded-xl border border-border bg-white p-5 transition hover:-translate-y-0.5 hover:border-gold hover:shadow-md"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-navy text-gold">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-navy group-hover:text-gold-dark">{s.title}</h3>
-                      <p className="mt-1 text-sm text-slate-500 line-clamp-2">{s.shortDesc}</p>
-                    </div>
-                  </Link>
-                </StaggerItem>
-              );
-            })}
-          </StaggerChildren>
-
-          <div className="mt-10 text-center">
-            <Link href="/services" className="btn-primary">View All Services</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Why We Are Best */}
-      <section className="py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <AnimateIn className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">People Trust</p>
-            <h2 className="mt-2 text-3xl font-bold text-navy">Why We Are Best</h2>
+          <AnimateIn delay={0.1} className="mt-10">
+            <BeforeAfterSlider
+              beforeUrl={HERO_BEFORE_AFTER.before}
+              afterUrl={HERO_BEFORE_AFTER.after}
+              caption={HERO_BEFORE_AFTER.caption}
+            />
           </AnimateIn>
-          <StaggerChildren className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {steps.map((s) => (
-              <StaggerItem key={s.n}>
-                <div className="rounded-xl border border-border bg-white p-6 transition hover:shadow-md">
-                  <span className="text-3xl font-bold text-gold/30">{s.n}</span>
-                  <h3 className="mt-2 font-semibold text-navy">{s.title}</h3>
-                  <p className="mt-2 text-sm text-slate-500 leading-relaxed">{s.desc}</p>
+
+          <StaggerChildren className="mt-10 grid gap-6 md:grid-cols-3">
+            {RECENT_WORK.map((w) => (
+              <StaggerItem key={w.id}>
+                <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+                  <BeforeAfterSlider
+                    className="rounded-none rounded-t-xl"
+                    beforeUrl={w.before}
+                    afterUrl={w.after}
+                    caption={w.caption}
+                  />
+                  <div className="p-5">
+                    <h3 className="font-semibold text-navy">{w.title}</h3>
+                    <p className="mt-2 text-sm text-slate-500">{w.desc}</p>
+                  </div>
                 </div>
               </StaggerItem>
             ))}
           </StaggerChildren>
+
+          <div className="mt-10 text-center">
+            <Link href="/our-work" className="btn-secondary">More Cases</Link>
+          </div>
         </div>
       </section>
 
-      {/* Featured service split */}
-      <section className="bg-navy py-20 px-4 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
+      {/* Team — who does the work */}
+      <section className="relative overflow-hidden py-20 px-4 lg:px-8">
+        <SectionBg theme="team" tone="light" />
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <AnimateIn className="text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">Meet the Crew</p>
+            <h2 className="mt-2 text-3xl font-bold text-navy">Our Professionals</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-slate-600">
+              Electricians, carpenters, plumbers, roofers & security specialists — swipe through the trades that power every project.
+            </p>
+          </AnimateIn>
+          <div className="mt-12">
+            <TeamCarousel members={teamSlides} />
+          </div>
+        </div>
+      </section>
+
+      {/* Featured service */}
+      <section className="relative overflow-hidden bg-navy py-20 px-4 lg:px-8">
+        <SectionBg theme="roofing" tone="navy" />
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           <AnimateIn>
             <p className="text-sm font-semibold uppercase tracking-wider text-gold">Featured Service</p>
             <h2 className="mt-2 text-3xl font-bold text-white">Reliable Roofing Solutions</h2>
@@ -257,91 +265,19 @@ export function HomePageContent({
             </Link>
           </AnimateIn>
           <AnimateIn delay={0.1}>
-            <ImagePlaceholder label="Roofing Project" sublabel="Before / after · placeholder" aspect="hero" />
+            <SectionPhoto
+              theme="roofing"
+              alt="Roofing project"
+              className="aspect-[4/3] w-full rounded-xl shadow-lg ring-1 ring-white/10"
+            />
           </AnimateIn>
         </div>
       </section>
-
-      {/* Promo banner */}
-      <section className="relative overflow-hidden py-14">
-        <div className="absolute inset-0 bg-gradient-to-r from-navy to-navy-light" />
-        <div className="absolute inset-0 opacity-10">
-          <ImagePlaceholder label="" aspect="wide" className="h-full rounded-none border-0" />
-        </div>
-        <AnimateIn className="relative mx-auto max-w-7xl px-4 text-center lg:px-8">
-          <h2 className="text-2xl font-bold text-white lg:text-3xl">
-            {(settings.promoTitle as string) || 'Book Your First Service & Get 30% Off'}
-          </h2>
-          <p className="mt-3 text-white/70">Limited time offer for new customers in the Houston area.</p>
-          <Link href="/appointment" className="btn-primary mt-6 inline-flex px-10 py-3">
-            Book Now
-          </Link>
-        </AnimateIn>
-      </section>
-
-      {/* Before & After showcase */}
-      <section className="py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <AnimateIn className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">Transformations</p>
-            <h2 className="mt-2 text-3xl font-bold text-navy">Before & After</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-slate-600">
-              See the difference our team makes — quality remodeling and restoration on every project.
-            </p>
-          </AnimateIn>
-
-          <AnimateIn delay={0.1} className="mt-10">
-            <BeforeAfterSlider />
-          </AnimateIn>
-
-          <StaggerChildren className="mt-10 grid gap-6 md:grid-cols-3">
-            {recentWork.map((w) => (
-              <StaggerItem key={w.title}>
-                <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-                  <BeforeAfterSlider className="rounded-none rounded-t-xl" beforeLabel="Before" afterLabel="After" />
-                  <div className="p-5">
-                    <h3 className="font-semibold text-navy">{w.title}</h3>
-                    <p className="mt-2 text-sm text-slate-500">{w.desc}</p>
-                  </div>
-                </div>
-              </StaggerItem>
-            ))}
-          </StaggerChildren>
-
-          <div className="mt-10 text-center">
-            <Link href="/our-work" className="btn-secondary">More Cases</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* House repair CTA strip */}
-      <section className="border-y border-border bg-muted py-12 px-4 text-center lg:px-8">
-        <AnimateIn>
-          <h2 className="text-2xl font-bold text-navy">We Can Assist You With All Aspects of House Repair</h2>
-          <p className="mx-auto mt-3 max-w-xl text-slate-600">
-            Fixture replacement, electrical work, handyman service, and appliance repair — call us or book online.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <a href="tel:+13463657221" className="btn-secondary inline-flex items-center gap-2">
-              <Phone className="h-4 w-4" /> (346) 365-7221
-            </a>
-            <Link href="/appointment" className="btn-primary">Book In App</Link>
-          </div>
-        </AnimateIn>
-      </section>
-
-      {/* Pricing */}
-      {pricing.length > 0 && (
-        <PricingSection
-          plans={pricing}
-          yearly={pricingYearly}
-          onToggleYearly={setPricingYearly}
-        />
-      )}
 
       {/* Testimonials */}
-      <section className="bg-navy py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      <section className="relative overflow-hidden bg-navy py-20 px-4 lg:px-8">
+        <SectionBg theme="home" tone="navy" />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn className="text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-gold">Customers Feedback</p>
             <h2 className="mt-2 text-3xl font-bold text-white">What Our Clients Say</h2>
@@ -357,9 +293,18 @@ export function HomePageContent({
                   </div>
                   <p className="text-sm leading-relaxed text-white/80">&ldquo;{t.quote}&rdquo;</p>
                   <div className="mt-4 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/20 text-sm font-bold text-gold">
-                      {t.name.charAt(0)}
-                    </div>
+                    {resolveImageUrl(t.avatarUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveImageUrl(t.avatarUrl)!}
+                        alt=""
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/20 text-sm font-bold text-gold">
+                        {t.name.charAt(0)}
+                      </div>
+                    )}
                     <div>
                       <p className="font-semibold text-white">{t.name}</p>
                       {(t.role || t.location) && (
@@ -374,38 +319,12 @@ export function HomePageContent({
         </div>
       </section>
 
-      {/* Team */}
-      <section className="py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <AnimateIn className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">Teams</p>
-            <h2 className="mt-2 text-3xl font-bold text-navy">Our Professionals</h2>
-          </AnimateIn>
-          <StaggerChildren className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {team.map((m) => (
-              <StaggerItem key={m.id}>
-                <div className="group rounded-xl border border-border bg-white p-6 text-center transition hover:-translate-y-1 hover:shadow-md">
-                  <ImagePlaceholder
-                    label={m.name.split(' ')[0]}
-                    sublabel="Photo placeholder"
-                    aspect="square"
-                    className="mx-auto mb-4 max-w-[140px]"
-                  />
-                  <h3 className="font-semibold text-navy">{m.name}</h3>
-                  <p className="text-sm text-gold-dark">{m.teamProfile?.designation}</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Experience: {m.teamProfile?.yearsExperience} Years
-                  </p>
-                </div>
-              </StaggerItem>
-            ))}
-          </StaggerChildren>
-        </div>
-      </section>
+      <HomeFinalCta contactPhone={contactPhone} />
 
       {/* Gallery */}
-      <section className="bg-navy py-20 px-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      <section className="relative overflow-hidden bg-navy py-20 px-4 lg:px-8">
+        <SectionBg theme="portfolio" tone="navy" />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <AnimateIn className="text-center">
             <h2 className="text-3xl font-bold text-white">Gallery</h2>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -423,11 +342,16 @@ export function HomePageContent({
               ))}
             </div>
           </AnimateIn>
-          <StaggerChildren className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StaggerChildren key={galleryFilter} className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredGallery.map((g) => (
-              <StaggerItem key={g.title}>
+              <StaggerItem key={g.id}>
                 <div className="group overflow-hidden rounded-xl ring-1 ring-white/10 transition hover:ring-gold/50">
-                  <BeforeAfterSlider className="rounded-none" />
+                  <BeforeAfterSlider
+                    className="rounded-none"
+                    beforeUrl={g.before}
+                    afterUrl={g.after}
+                    caption={g.caption}
+                  />
                   <p className="bg-white/5 px-4 py-3 text-sm font-medium text-white">{g.title}</p>
                 </div>
               </StaggerItem>
@@ -436,10 +360,20 @@ export function HomePageContent({
         </div>
       </section>
 
+      {/* Pricing */}
+      {pricing.length > 0 && (
+        <PricingSection
+          plans={pricing}
+          yearly={pricingYearly}
+          onToggleYearly={setPricingYearly}
+        />
+      )}
+
       {/* FAQ */}
       {faqs.length > 0 && (
-        <section className="py-20 px-4 lg:px-8">
-          <div className="mx-auto max-w-3xl">
+        <section className="relative overflow-hidden py-20 px-4 lg:px-8">
+          <SectionBg theme="security" tone="light" />
+          <div className="relative z-10 mx-auto max-w-3xl">
             <AnimateIn className="text-center">
               <p className="text-sm font-semibold uppercase tracking-wider text-gold-dark">Questions</p>
               <h2 className="mt-2 text-3xl font-bold text-navy">Frequently Asked Questions</h2>
@@ -470,19 +404,6 @@ export function HomePageContent({
           </div>
         </section>
       )}
-
-      {/* Final CTA + contact form teaser */}
-      <section className="py-20 px-4 lg:px-8">
-        <AnimateIn className="mx-auto max-w-3xl rounded-2xl border border-border bg-muted p-8 text-center lg:p-12">
-          <h2 className="text-2xl font-bold text-navy">Ready to Start Your Project With Us?</h2>
-          <p className="mt-3 text-slate-600">
-            Whether you need a full renovation or reliable security solutions, we&apos;re here to help.
-          </p>
-          <Link href="/contact" className="btn-primary mt-6 inline-flex px-10 py-3">
-            Contact Us Today
-          </Link>
-        </AnimateIn>
-      </section>
     </>
   );
 }
