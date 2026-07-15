@@ -3,7 +3,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY server/package.json ./server/
-RUN npm ci -w server
+RUN npm ci -w server --ignore-scripts
 
 COPY server ./server
 WORKDIR /app/server
@@ -14,12 +14,13 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY server/package.json ./server/
-RUN npm ci -w server --omit=dev
+COPY server/prisma ./server/prisma
+RUN npm ci -w server --omit=dev --ignore-scripts
 
 COPY --from=builder /app/server/dist ./server/dist
-COPY --from=builder /app/server/node_modules/.prisma ./server/node_modules/.prisma
-COPY --from=builder /app/server/node_modules/@prisma ./server/node_modules/@prisma
-COPY server/prisma ./server/prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 WORKDIR /app/server
 RUN mkdir -p uploads
