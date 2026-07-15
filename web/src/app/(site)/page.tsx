@@ -1,13 +1,12 @@
 import { HomePageContent } from '@/components/site/HomePageContent';
 import { JsonLd } from '@/components/site/JsonLd';
-import { absoluteUrl, buildPageMetadata, REVALIDATE_SECONDS, SITE_NAME } from '@/lib/seo';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { absoluteUrl, buildPageMetadata, fetchPublicApi, REVALIDATE_SECONDS, SITE_NAME } from '@/lib/seo';
 
 export async function generateMetadata() {
-  const settings = (await fetch(`${API_URL}/settings`, { next: { revalidate: REVALIDATE_SECONDS } })
-    .then((r) => (r.ok ? r.json() : {}))
-    .catch(() => ({}))) as Record<string, unknown>;
+  const settings = await fetchPublicApi<Record<string, unknown>>('/settings', {
+    revalidate: REVALIDATE_SECONDS,
+    fallback: {},
+  });
 
   const title = (settings.heroTitle as string) || 'Licensed Home & Security Services in Houston';
   const description =
@@ -19,13 +18,13 @@ export async function generateMetadata() {
 
 async function getData() {
   const [services, projects, testimonials, team, settings, pricing, faqs] = await Promise.all([
-    fetch(`${API_URL}/services`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/projects`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/testimonials`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/team`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/settings`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => ({})),
-    fetch(`${API_URL}/pricing`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/faqs`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
+    fetchPublicApi('/services', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/projects', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/testimonials', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/team', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi<Record<string, unknown>>('/settings', { revalidate: REVALIDATE_SECONDS, fallback: {} }),
+    fetchPublicApi('/pricing', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/faqs', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
   ]);
   return { services, projects, testimonials, team, settings, pricing, faqs };
 }

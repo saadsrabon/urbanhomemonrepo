@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
-import { absoluteUrl } from '@/lib/seo';
+import { absoluteUrl, fetchPublicApi } from '@/lib/seo';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -15,13 +15,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/contact', priority: 0.8, changeFrequency: 'monthly' },
   ];
 
-  let services: { slug: string; updatedAt?: string }[] = [];
-  try {
-    const res = await fetch(`${API_URL}/services`, { next: { revalidate: 3600 } });
-    if (res.ok) services = await res.json();
-  } catch {
-    // API may be unavailable at build time
-  }
+  const services = await fetchPublicApi<{ slug: string; updatedAt?: string }[]>('/services', {
+    revalidate: 3600,
+    fallback: [],
+  });
 
   return [
     ...staticRoutes.map(({ path, priority, changeFrequency }) => ({

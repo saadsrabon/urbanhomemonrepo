@@ -60,7 +60,7 @@ Open the **Environment** tab and add these (copy from [`.env.example`](.env.exam
 | `JWT_REFRESH_SECRET` | *(32+ random chars)* | **Required** |
 | `CORS_ORIGIN` | `https://yourdomain.com` | Exact public URL, no trailing slash |
 | `NEXT_PUBLIC_API_URL` | `/api` | Relative path — nginx proxies to API |
-| `NEXT_PUBLIC_SITE_URL` | `https://yourdomain.com` | Used for SEO, sitemap, OG tags |
+| `NEXT_PUBLIC_SITE_URL` | `https://yourdomain.com` | Used for SEO, sitemap, OG tags — **set before first web build** |
 
 ### Recommended
 

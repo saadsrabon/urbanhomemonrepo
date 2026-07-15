@@ -1,8 +1,6 @@
 import { ContactPageContent } from '@/components/site/ContactPageContent';
 import { JsonLd } from '@/components/site/JsonLd';
-import { absoluteUrl, buildPageMetadata, REVALIDATE_SECONDS, SITE_NAME } from '@/lib/seo';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { absoluteUrl, buildPageMetadata, fetchPublicApi, REVALIDATE_SECONDS, SITE_NAME } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Contact Us — Get a Free Quote',
@@ -14,8 +12,8 @@ export const metadata = buildPageMetadata({
 
 async function getData() {
   const [settings, locations] = await Promise.all([
-    fetch(`${API_URL}/settings`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => ({})),
-    fetch(`${API_URL}/locations`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
+    fetchPublicApi<Record<string, unknown>>('/settings', { revalidate: REVALIDATE_SECONDS, fallback: {} }),
+    fetchPublicApi('/locations', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
   ]);
   return { settings, locations };
 }

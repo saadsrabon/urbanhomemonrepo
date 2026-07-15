@@ -1,15 +1,26 @@
 import { notFound } from 'next/navigation';
-import { ServiceDetailTemplate } from '@/components/site/ServiceDetailTemplate';
+import { ServiceDetailTemplate, type ServiceDetailData } from '@/components/site/ServiceDetailTemplate';
 import { JsonLd } from '@/components/site/JsonLd';
-import { absoluteUrl, buildPageMetadata, REVALIDATE_SECONDS } from '@/lib/seo';
+import { absoluteUrl, buildPageMetadata, fetchPublicApi, REVALIDATE_SECONDS } from '@/lib/seo';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+type ServiceRecord = {
+  id?: string;
+  title: string;
+  slug?: string;
+  seoTitle?: string;
+  seoDesc?: string;
+  shortDesc?: string;
+  description?: string;
+  processSteps?: unknown;
+  category?: { name?: string };
+};
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const service = await fetch(`${API_URL}/services/${slug}`, { next: { revalidate: REVALIDATE_SECONDS } })
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
+  const service = await fetchPublicApi<ServiceRecord | null>(
+    `/services/${slug}`,
+    { revalidate: REVALIDATE_SECONDS, fallback: null }
+  );
   if (!service) {
     return buildPageMetadata({
       title: 'Service Not Found',
@@ -20,9 +31,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
   return buildPageMetadata({
     title: service.seoTitle || service.title,
-    description: service.seoDesc || service.shortDesc || service.description?.slice(0, 160),
+    description: service.seoDesc || service.shortDesc || service.description?.slice(0, 160) || service.title,
     path: `/services/${slug}`,
-    keywords: [service.title, service.category?.name, 'Houston home service'].filter(Boolean),
+    keywords: [service.title, service.category?.name, 'Houston home service'].filter(
+      (keyword): keyword is string => Boolean(keyword)
+    ),
   });
 }
 
@@ -30,15 +43,9 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
   const { slug } = await params;
 
   const [service, allServices, settings] = await Promise.all([
-    fetch(`${API_URL}/services/${slug}`, { next: { revalidate: REVALIDATE_SECONDS } })
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null),
-    fetch(`${API_URL}/services`, { next: { revalidate: REVALIDATE_SECONDS } })
-      .then((r) => r.json())
-      .catch(() => []),
-    fetch(`${API_URL}/settings`, { next: { revalidate: REVALIDATE_SECONDS } })
-      .then((r) => r.json())
-      .catch(() => ({})),
+    fetchPublicApi<ServiceRecord | null>(`/services/${slug}`, { revalidate: REVALIDATE_SECONDS, fallback: null }),
+    fetchPublicApi<ServiceRecord[]>('/services', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi<Record<string, unknown>>('/settings', { revalidate: REVALIDATE_SECONDS, fallback: {} }),
   ]);
 
   if (!service) notFound();
@@ -67,11 +74,11 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
         service={{
           ...service,
           processSteps,
-        }}
-        allServices={allServices.map((s: { id: string; title: string; slug: string }) => ({
-          id: s.id,
+        } as ServiceDetailData}
+        allServices={allServices.map((s) => ({
+          id: s.id ?? s.slug ?? s.title,
           title: s.title,
-          slug: s.slug,
+          slug: s.slug ?? '',
         }))}
         contactPhone={(settings.contactPhone as string) || '(346) 365-7221'}
         contactEmail={(settings.contactEmail as string) || 'info@urbanhomeandsecurity.com'}

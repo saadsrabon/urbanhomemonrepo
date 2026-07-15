@@ -26,6 +26,43 @@ export function getSiteUrl() {
   return 'http://localhost:3000';
 }
 
+/** Absolute API base for server-side fetches (relative /api is not valid in Node fetch). */
+export function getServerApiUrl(): string {
+  const internal = process.env.SERVER_API_URL?.trim();
+  if (internal) return internal.replace(/\/$/, '');
+
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!configured) return 'http://localhost:4000/api';
+  if (configured.startsWith('http://') || configured.startsWith('https://')) {
+    return configured.replace(/\/$/, '');
+  }
+  const base = getSiteUrl().replace(/\/$/, '');
+  const path = configured.startsWith('/') ? configured : `/${configured}`;
+  return `${base}${path}`;
+}
+
+export async function fetchPublicApi<T>(
+  path: string,
+  options?: { revalidate?: number; fallback?: T }
+): Promise<T> {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${getServerApiUrl()}${normalizedPath}`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      next: options?.revalidate !== undefined ? { revalidate: options.revalidate } : undefined,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return (options?.fallback ?? null) as T;
+    return res.json() as Promise<T>;
+  } catch {
+    return (options?.fallback ?? null) as T;
+  }
+}
+
 export function absoluteUrl(path = '') {
   const base = getSiteUrl();
   if (!path) return base;

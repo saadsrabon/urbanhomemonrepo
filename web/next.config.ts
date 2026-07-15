@@ -1,10 +1,34 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
-const apiHost = process.env.NEXT_PUBLIC_API_URL
-  ? new URL(process.env.NEXT_PUBLIC_API_URL.replace('/api', '')).hostname
-  : 'localhost';
+function getApiHostname(): string {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() ?? '';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? '';
+
+  // Relative API path (/api) — uploads are served on the same domain via nginx.
+  if (!apiUrl || apiUrl.startsWith('/')) {
+    if (siteUrl) {
+      try {
+        return new URL(siteUrl).hostname;
+      } catch {
+        return 'localhost';
+      }
+    }
+    return 'localhost';
+  }
+
+  try {
+    const base = apiUrl.replace(/\/api\/?$/, '') || apiUrl;
+    return new URL(base).hostname;
+  } catch {
+    return 'localhost';
+  }
+}
+
+const apiHost = getApiHostname() || 'localhost';
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname, '..'),
   poweredByHeader: false,
   compress: true,
   experimental: {

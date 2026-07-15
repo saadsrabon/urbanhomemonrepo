@@ -60,6 +60,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      SERVER_API_URL: http://api:4000/api
     expose:
       - "3000"
     networks:

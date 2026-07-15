@@ -1,4 +1,11 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+const API_BASE = (() => {
+  const api = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!api) return 'http://localhost:4000';
+  if (api.startsWith('http://') || api.startsWith('https://')) {
+    return api.replace(/\/api\/?$/, '');
+  }
+  return '';
+})();
 
 const STATIC_ASSET_PREFIXES = ['/sections/', '/before-after/', '/team/', '/logo'];
 

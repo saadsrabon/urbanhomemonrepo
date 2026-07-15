@@ -2,32 +2,23 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { SiteOverlays } from '@/components/site/SiteOverlays';
 import type { NavService, NavProject } from '@/components/site/NavMegaMenu';
-import { REVALIDATE_SECONDS } from '@/lib/seo';
+import { fetchPublicApi, REVALIDATE_SECONDS } from '@/lib/seo';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+export const dynamic = 'force-dynamic';
 
 async function getSettings() {
-  try {
-    const res = await fetch(`${API_URL}/settings`, { next: { revalidate: REVALIDATE_SECONDS } });
-    if (!res.ok) return {};
-    return res.json();
-  } catch {
-    return {};
-  }
+  return fetchPublicApi<Record<string, unknown>>('/settings', {
+    revalidate: REVALIDATE_SECONDS,
+    fallback: {},
+  });
 }
 
 async function getNavData(): Promise<{ services: NavService[]; projects: NavProject[] }> {
-  try {
-    const [servicesRes, projectsRes] = await Promise.all([
-      fetch(`${API_URL}/services`, { next: { revalidate: REVALIDATE_SECONDS } }),
-      fetch(`${API_URL}/projects`, { next: { revalidate: REVALIDATE_SECONDS } }),
-    ]);
-    const services = servicesRes.ok ? await servicesRes.json() : [];
-    const projects = projectsRes.ok ? await projectsRes.json() : [];
-    return { services, projects };
-  } catch {
-    return { services: [], projects: [] };
-  }
+  const [services, projects] = await Promise.all([
+    fetchPublicApi<NavService[]>('/services', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi<NavProject[]>('/projects', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+  ]);
+  return { services, projects };
 }
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {

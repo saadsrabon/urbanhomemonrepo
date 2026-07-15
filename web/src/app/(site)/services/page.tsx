@@ -1,8 +1,6 @@
 import { ServicesPageContent } from '@/components/site/ServicesPageContent';
 import { JsonLd } from '@/components/site/JsonLd';
-import { absoluteUrl, buildPageMetadata, REVALIDATE_SECONDS } from '@/lib/seo';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { absoluteUrl, buildPageMetadata, fetchPublicApi, REVALIDATE_SECONDS } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Our Services — Remodeling, Security, Roofing & More',
@@ -14,11 +12,11 @@ export const metadata = buildPageMetadata({
 
 async function getData() {
   const [services, projects, testimonials, locations, settings] = await Promise.all([
-    fetch(`${API_URL}/services`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/projects`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/testimonials`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/locations`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => []),
-    fetch(`${API_URL}/settings`, { next: { revalidate: REVALIDATE_SECONDS } }).then((r) => r.json()).catch(() => ({})),
+    fetchPublicApi('/services', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/projects', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/testimonials', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi('/locations', { revalidate: REVALIDATE_SECONDS, fallback: [] }),
+    fetchPublicApi<Record<string, unknown>>('/settings', { revalidate: REVALIDATE_SECONDS, fallback: {} }),
   ]);
   return { services, projects, testimonials, locations, settings };
 }
