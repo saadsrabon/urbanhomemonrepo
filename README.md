@@ -75,26 +75,20 @@ Admin endpoints: `/api/admin/*` (requires auth)
 
 Team member: `/api/me/bookings`
 
-## VPS Deployment
+## VPS Deployment (Dockploy)
 
-```bash
-# On your VPS
-git clone <repo>
-cd urban-home-security
-cp .env.example .env
-# Edit .env with production values
+Production deploy uses **Docker Compose** on a VPS with [Dockploy](https://dockploy.com/).
 
-docker compose up -d --build
-docker compose exec api npx prisma migrate deploy
-docker compose exec api npm run db:seed
-```
+**Full step-by-step guide:** [DEPLOY-DOCKPLOY.md](DEPLOY-DOCKPLOY.md)
 
-### TLS with Certbot
+Quick summary:
 
-```bash
-# Install certbot, then update nginx config for SSL
-certbot --nginx -d yourdomain.com
-```
+1. Create a Dockploy **Compose** project from GitHub repo **`main`** branch.
+2. Set environment variables from [`.env.example`](.env.example).
+3. Point your domain to the **nginx** service (port 80) with HTTPS.
+4. Deploy, then run `docker compose exec api npm run db:seed` once.
+
+Also see [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md) for the optional Vercel demo deployment.
 
 ## Environment Variables
 

@@ -136,7 +136,7 @@ export function HomePageContent({
               {(settings.tagline as string) || 'One Stop Handyman Service'}
             </p>
             <h1 className="mt-2 text-xl font-bold leading-snug text-white sm:mt-3 sm:text-2xl lg:text-4xl">
-              {(settings.heroTitle as string) || 'We Will Make Your Home Better'}
+              {(settings.heroTitle as string) || 'We will make your home even Better'}
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-xs text-white/70 sm:mt-4 sm:text-sm lg:text-base">
               {(settings.heroSubtitle as string) ||
@@ -361,13 +361,13 @@ export function HomePageContent({
       </section>
 
       {/* Pricing */}
-      {pricing.length > 0 && (
+      {/* {pricing.length > 0 && (
         <PricingSection
           plans={pricing}
           yearly={pricingYearly}
           onToggleYearly={setPricingYearly}
         />
-      )}
+      )} */}
 
       {/* FAQ */}
       {faqs.length > 0 && (

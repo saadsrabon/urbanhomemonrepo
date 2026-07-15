@@ -85,7 +85,7 @@ async function main() {
       sortOrder: 2,
     },
     {
-      title: 'Air Conditioning Steel Cage',
+      title: 'Air conditioning anti-theft and steel cage',
       slug: 'air-conditioning-steel-cage',
       categoryId: securityServices.id,
       shortDesc: 'High-quality steel cages to protect your AC units and valuables.',
@@ -148,10 +148,11 @@ async function main() {
       sortOrder: 7,
     },
     {
-      title: 'Security Guard Services',
+      title: 'Security for construction sites and vacant buildings',
       slug: 'security-guard-services',
       categoryId: securityServices.id,
-      shortDesc: 'Professional security guard services for construction sites and properties.',
+      shortDesc:
+        'We are the best at protecting your property from squatters, burglars, and homeless drifters.',
       description: 'Security solutions to protect what matters most for homes and businesses.',
       featureBullets: ['Construction Site Security', 'Residential Security', 'Commercial Security'],
       benefitBullets: ['Highest safety standards', 'Peace of mind'],
@@ -200,7 +201,13 @@ async function main() {
   for (const svc of services) {
     await prisma.service.upsert({
       where: { slug: svc.slug },
-      update: {},
+      update: {
+        title: svc.title,
+        shortDesc: svc.shortDesc,
+        description: svc.description,
+        categoryId: svc.categoryId,
+        sortOrder: svc.sortOrder,
+      },
       create: { ...svc, priceType: PriceType.QUOTE },
     });
   }
@@ -297,7 +304,7 @@ async function main() {
     contactPhone: '(346) 365-7221',
     workingHours: 'Mon–Fri: 8 AM – 5 PM\nSat–Sun: 8 AM – 2 PM',
     address: 'Houston, TX',
-    heroTitle: 'We Will Make Your Home Better',
+    heroTitle: 'We will make your home even Better',
     heroSubtitle: 'Exceptional services like Repairing, Plumbing, Electrical, and Security within your budget',
     statYears: 10,
     statProjects: 500,
